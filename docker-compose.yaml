@@ -1,0 +1,9 @@
+version: '2.2'
+
+services:
+  tech-tools:
+    build: .
+    ports:
+      - "3000:80"
+    container_name: tech-tools-app
+    restart: unless-stopped
