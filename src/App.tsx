@@ -64,7 +64,7 @@ export default function TechTools() {
   const [sqlInput, setSqlInput] = useState("");
   const [sqlOutput, setSqlOutput] = useState("");
   const [sqlKeywordCase, setSqlKeywordCase] = useState("upper");
-  const [sqlDialect, setSqlDialect]= useState("sql");
+  const [sqlDialect, setSqlDialect]= useState("sql"); 
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
