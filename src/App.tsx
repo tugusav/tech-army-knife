@@ -11,6 +11,8 @@ function AppContent() {
   const [activeView, setActiveView] = useState('home');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -42,18 +44,64 @@ function AppContent() {
 
   return (
     <div className={`flex h-screen ${bgClass}`}>
-      <Sidebar
-        activeView={activeView}
-        setActiveView={(view) => {
-          setActiveView(view);
-          setError('');
-        }}
-        categories={categories}
-        darkMode={darkMode}
-        toggleDarkMode={toggleDarkMode}
-      />
+    
+      {/* Hamburger (mobile only, disappears when open) */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className={`md:hidden absolute top-3 left-3 z-[50] p-2 rounded-lg shadow-lg
+            ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-100'}`}
+        >
+          ☰
+        </button>
+      )}
 
-      <div className="flex-1 overflow-y-auto">
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex">
+        <Sidebar
+          activeView={activeView}
+          setActiveView={(view) => {
+            setActiveView(view);
+            setError('');
+          }}
+          categories={categories}
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+        />
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed top-0 left-0 w-56 max-w-[14rem] h-full
+          bg-white dark:bg-gray-800 shadow-xl
+          transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          transition-transform duration-300 z-[100] md:hidden`}>
+
+      
+        <Sidebar
+          activeView={activeView}
+          setActiveView={(view) => {
+            setActiveView(view);
+            setSidebarOpen(false);
+            setError('');
+          }}
+          categories={categories}
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+        />
+      </div>
+
+
+      <div className="flex-1 overflow-y-auto pt-14 md:pt-0">
         {activeView === 'home' ? (
           <HomePage tools={tools} setActiveView={setActiveView} darkMode={darkMode} />
         ) : (
