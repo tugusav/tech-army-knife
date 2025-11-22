@@ -341,7 +341,7 @@ export default function TechTools() {
       {/* Sidebar */}
       <div className="w-56 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">Tech Army Knife</h1>
+          <h1 className="text-xl font-bold text-gray-900">TechArmyKnife</h1>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3">
@@ -382,8 +382,8 @@ export default function TechTools() {
         {activeView === "home" ? (
           <div className="max-w-7xl mx-auto p-8">
             <div className="text-center mb-12">
-              <h1 className="text-5xl font-bold text-gray-900 mb-4">Your Ultimate Developer Toolkit</h1>
-              <p className="text-xl text-gray-600">Tools for developers, by a developer.</p>
+              <h1 className="text-5xl font-bold text-gray-900 mb-4">Your Tech Swiss-Army Knife</h1>
+              <p className="text-xl text-gray-600">Tools for developers to help you work faster!</p>
             </div>
 
             <div className="flex gap-4 justify-center mb-12">
