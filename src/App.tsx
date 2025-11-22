@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { diffLines, diffWords } from "diff";
 import { format as formatSQL } from "sql-formatter";
 import { Copy, Check, AlertCircle, FileJson, GitCompare, Code2, Database, FileCode, Shuffle, Terminal, Home } from "lucide-react";
@@ -65,6 +65,78 @@ export default function TechTools() {
   const [sqlOutput, setSqlOutput] = useState("");
   const [sqlKeywordCase, setSqlKeywordCase] = useState("upper");
   const [sqlDialect, setSqlDialect]= useState("sql"); 
+
+  const [regexPattern, setRegexPattern] = useState("");
+  const [regexFlags, setRegexFlags] = useState("gi");
+  const [regexText, setRegexText] = useState("");
+  const [regexMatches, setRegexMatches] = useState([]);
+
+  const [jwtInput, setJwtInput] = useState("");
+  const [jwtDecoded, setJwtDecoded] = useState(null);
+  const [jwtPayload, setJwtPayload] = useState("");
+  const [jwtSecret, setJwtSecret] = useState("");
+  const [jwtEncoded, setJwtEncoded] = useState("");
+
+
+  const regexTemplates = {
+    Email: "^[\\w.-]+@[\\w.-]+\\.[A-Za-z]{2,}$",
+    Phone: "^\\+?[0-9]{7,15}$",
+    URL: "https?:\\/\\/[\\w.-]+(?:\\.[\\w.-]+)+[/#?]?.*$",
+    IPv4: "^((25[0-5]|(2[0-4]|1?[0-9]?[0-9]))\\.){3}(25[0-5]|(2[0-4]|1?[0-9]?[0-9]))$",
+    PostalCode: "^[0-9]{5}$",
+    Username: "^[a-zA-Z0-9_]{3,16}$"
+  };
+  
+  const testRegex = () => {
+    try {
+      const re = new RegExp(regexPattern, regexFlags);
+      const m = [...regexText.matchAll(re)];
+      setRegexMatches(m);
+    } catch (e) {
+      setError("Invalid regex: " + e.message);
+    }
+  };
+
+  const decodeJWT = () => {
+    try {
+      const parts = jwtInput.split(".");
+      const header = JSON.parse(atob(parts[0]));
+      const payload = JSON.parse(atob(parts[1]));
+      setJwtDecoded({ header, payload });
+    } catch (e) {
+      setError("Invalid JWT");
+    }
+  };
+  
+  const encodeJWT = async () => {
+    try {
+      const header = { alg: "HS256", typ: "JWT" };
+      const enc = (o) => btoa(JSON.stringify(o));
+  
+      const unsigned = enc(header) + "." + enc(JSON.parse(jwtPayload));
+  
+      const key = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(jwtSecret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+  
+      const sigBuf = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        new TextEncoder().encode(unsigned)
+      );
+      const signature = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+  
+      setJwtEncoded(unsigned + "." + signature);
+    } catch (e) {
+      setError("Error encoding JWT: " + e.message);
+    }
+  };
+  
+  
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -327,6 +399,8 @@ export default function TechTools() {
     { id: "json-format", name: "JSON Formatter", category: "formatting", icon: FileJson, desc: "Format and beautify JSON." },
     { id: "yaml-format", name: "YAML Formatter", category: "formatting", icon: FileCode, desc: "Format and beautify YAML." },
     { id: "sql-format", name: "SQL Formatter", category: "formatting", icon: Database, desc: "Format SQL queries." },
+    { id: "regex", name: "Regex Tester", category: "text", icon: Code2, desc: "Generate & test regex." }
+
   ];
 
   const categories = [
@@ -343,6 +417,8 @@ export default function TechTools() {
         <div className="p-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900">TechArmyKnife</h1>
         </div>
+      
+
 
         <nav className="flex-1 overflow-y-auto p-3">
           <div className="mb-6">
@@ -714,6 +790,125 @@ export default function TechTools() {
                   )}
                 </div>
               )}
+
+              {/* Regex */}
+              {activeView === "regex" && (
+                <div className="p-6 space-y-4">
+                  <h2 className="text-xl font-bold">Regex Generator & Tester</h2>
+
+                  <div>
+                    <label className="block mb-1">Select Template</label>
+                    <select
+                      className="border p-2 rounded w-full"
+                      onChange={(e) => setRegexPattern(e.target.value)}
+                    >
+                      <option value="">--Choose Template--</option>
+                      {Object.entries(regexTemplates).map(([name, value]) => (
+                        <option key={name} value={value}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-1">Pattern</label>
+                    <input
+                      value={regexPattern}
+                      onChange={(e) => setRegexPattern(e.target.value)}
+                      className="border p-2 rounded w-full font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1">Flags</label>
+                    <input
+                      value={regexFlags}
+                      onChange={(e) => setRegexFlags(e.target.value)}
+                      className="border p-2 rounded w-24 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1">Test Text</label>
+                    <textarea
+                      value={regexText}
+                      onChange={(e) => setRegexText(e.target.value)}
+                      className="border p-2 rounded w-full h-28"
+                    />
+                  </div>
+
+                  <button
+                    onClick={testRegex}
+                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                  >
+                    Test Regex
+                  </button>
+
+                  <div>
+                    <h3 className="font-bold">Matches:</h3>
+                    <pre className="bg-gray-100 p-3 rounded text-sm">
+                      {JSON.stringify(regexMatches, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+              {/* JWT Decoder & Encoder */}
+
+              {activeView === "jwt" && (
+                <div className="p-6 space-y-4">
+                  <h2 className="text-xl font-bold">JWT Decoder & Encoder</h2>
+
+                  <div>
+                    <label className="font-semibold">JWT Input</label>
+                    <textarea
+                      value={jwtInput}
+                      onChange={(e) => setJwtInput(e.target.value)}
+                      className="border p-2 rounded w-full h-28 font-mono"
+                    />
+                    <button onClick={decodeJWT} className="bg-blue-600 text-white px-4 py-2 rounded mt-2">
+                      Decode JWT
+                    </button>
+                  </div>
+
+                  {jwtDecoded && (
+                    <pre className="bg-gray-100 p-3 rounded text-sm">
+                      {JSON.stringify(jwtDecoded, null, 2)}
+                    </pre>
+                  )}
+
+                  <hr />
+
+                  <div>
+                    <label className="font-semibold">Payload (JSON)</label>
+                    <textarea
+                      value={jwtPayload}
+                      onChange={(e) => setJwtPayload(e.target.value)}
+                      className="border p-2 rounded w-full h-28 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold">Secret</label>
+                    <input
+                      type="text"
+                      value={jwtSecret}
+                      onChange={(e) => setJwtSecret(e.target.value)}
+                      className="border p-2 rounded w-full font-mono"
+                    />
+                  </div>
+
+                  <button onClick={encodeJWT} className="bg-green-600 text-white px-4 py-2 rounded">
+                    Encode JWT
+                  </button>
+
+                  {jwtEncoded && (
+                    <pre className="bg-gray-100 p-3 rounded text-sm mt-3">
+                      {jwtEncoded}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+
 
               {/* SQL Formatter */}
               {activeView === "sql-format" && (
