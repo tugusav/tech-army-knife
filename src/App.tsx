@@ -13,7 +13,6 @@ function AppContent() {
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -43,19 +42,7 @@ function AppContent() {
   const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
 
   return (
-    <div className={`flex h-screen ${bgClass}`}>
-    
-      {/* Hamburger (mobile only, disappears when open) */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className={`md:hidden absolute top-3 left-3 z-[50] p-2 rounded-lg shadow-lg
-            ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-100'}`}
-        >
-          ☰
-        </button>
-      )}
-
+    <div className={`flex h-screen ${bgClass} relative`}>
 
       {/* Desktop Sidebar */}
       <div className="hidden md:flex">
@@ -71,22 +58,49 @@ function AppContent() {
         />
       </div>
 
-      {/* Overlay */}
+      {/* Mobile Top Bar */}
+      <div
+        className={`md:hidden fixed top-0 left-0 right-0 h-12 flex items-center px-4 shadow z-[90] ${
+          darkMode ? 'bg-gray-900' : 'bg-gray-50'
+        }`}
+      >
+        {/* Hamburger */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={`p-2 rounded-lg ${
+              darkMode ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-50 text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            ☰
+          </button>
+        )}
+
+          {/* Title */}
+          <h1
+            className={`absolute left-1/2 transform -translate-x-1/2 text-lg font-bold ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}
+          >
+            TechArmyKnife
+          </h1>
+        </div>
+
+      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] md:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[95] md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile drawer */}
+      {/* Mobile Drawer */}
       <div
-        className={`fixed top-0 left-0 w-56 max-w-[14rem] h-full
-          bg-white dark:bg-gray-800 shadow-xl
-          transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          transition-transform duration-300 z-[100] md:hidden`}>
-
-      
+        className={`fixed top-0 left-0 w-56 max-w-[14rem] h-screen
+          bg-white dark:bg-gray-800 shadow-xl transform ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } transition-transform duration-300 z-[100] md:hidden flex flex-col`}
+      >
         <Sidebar
           activeView={activeView}
           setActiveView={(view) => {
@@ -100,8 +114,8 @@ function AppContent() {
         />
       </div>
 
-
-      <div className="flex-1 overflow-y-auto pt-14 md:pt-0">
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto md:pt-0 pt-12">
         {activeView === 'home' ? (
           <HomePage tools={tools} setActiveView={setActiveView} darkMode={darkMode} />
         ) : (
