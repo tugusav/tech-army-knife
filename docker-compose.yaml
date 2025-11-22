@@ -1,9 +1,9 @@
 version: '2.2'
 
 services:
-  tech-tools:
+  tech-army-knife:
     build: .
     ports:
       - "3000:80"
-    container_name: tech-tools-app
+    container_name: tech-army-knife
     restart: unless-stopped

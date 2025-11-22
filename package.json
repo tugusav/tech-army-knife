@@ -1,5 +1,5 @@
 {
-    "name": "tech-tools",
+    "name": "tech-army-knife",
     "version": "1.0.0",
     "type": "module",
     "scripts": {
@@ -10,7 +10,9 @@
     "dependencies": {
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "lucide-react": "^0.263.1"
+      "lucide-react": "^0.263.1",
+      "diff": "^5.2.0",
+      "sql-formatter": "^15.6.10"
     },
     "devDependencies": {
       "@vitejs/plugin-react": "^4.0.0",

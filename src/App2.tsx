@@ -1,18 +1,17 @@
+
 import React, { useState } from "react";
 import { diffLines, diffWords } from "diff";
-import { format as formatSQL } from "sql-formatter";
 import { Copy, Check, AlertCircle, FileJson, GitCompare, Code2, Database, FileCode, Shuffle, Terminal, Home } from "lucide-react";
 
 /**
- * Updated App.tsx
- * - Side-by-side code-editor style diff with line numbers (uses diff library)
- * - SQL formatter uses sql-formatter (fixed 2-space indent, no selectors)
- * - cURL generator supports combined short flags (e.g. -vik) and --resolve
- * - JSON formatter keeps numeric-only indentation selector
+ * App.tsx
+ * - Side-by-side git-style diff (adds green, deletes red, modified highlighted)
+ * - Uses `diff` library (diffLines + diffWords)
+ * - JSON formatter: visible indentation selector (numbers only)
+ * - Only YAML exposes indent type (spaces / tabs)
+ * - cURL flags are combined (e.g. -vik, -ik)
  *
- * Notes:
- * - Make sure to `npm install diff sql-formatter lucide-react` (see commands below).
- * - This file uses Tailwind utility classes; adjust styling if not using Tailwind.
+ * Note: install dependency: npm install diff lucide-react
  */
 
 export default function TechTools() {
@@ -36,12 +35,11 @@ export default function TechTools() {
     includeHeaders: false,
     insecure: false,
   });
-  const [curlResolve, setCurlResolve] = useState(""); // --resolve host:port:ip
 
   // Text Compare
   const [text1, setText1] = useState("");
   const [text2, setText2] = useState("");
-  const [diffRows, setDiffRows] = useState([]); // rows for the side-by-side editor-like view
+  const [diffRows, setDiffRows] = useState([]); // rows for side-by-side
 
   // JSON/YAML
   const [jsonYamlInput, setJsonYamlInput] = useState("");
@@ -60,31 +58,35 @@ export default function TechTools() {
   const [yamlIndent, setYamlIndent] = useState("2");
   const [yamlUseTab, setYamlUseTab] = useState(false);
 
-  // SQL Formatter (no indent selectors)
+  // SQL Formatter (keep as before)
   const [sqlInput, setSqlInput] = useState("");
   const [sqlOutput, setSqlOutput] = useState("");
   const [sqlKeywordCase, setSqlKeywordCase] = useState("upper");
-  const [sqlDialect, setSqlDialect]= useState("sql");
+  const [sqlIndent, setSqlIndent] = useState("2");
+  const [sqlUseTab, setSqlUseTab] = useState(false);
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  // Base64 conversion
+  // Base64
   const handleBase64Convert = () => {
     setError("");
     try {
-      if (base64Mode === "encode") setBase64Output(btoa(base64Input));
-      else setBase64Output(atob(base64Input));
+      if (base64Mode === "encode") {
+        setBase64Output(btoa(base64Input));
+      } else {
+        setBase64Output(atob(base64Input));
+      }
     } catch (e) {
       setError("Invalid input for conversion");
       setBase64Output("");
     }
   };
 
-  // cURL generator: combined short flags and --resolve
+  // cURL generator with combined flags
   const generateCurl = () => {
     setError("");
     if (!curlUrl.trim()) {
@@ -92,7 +94,7 @@ export default function TechTools() {
       return;
     }
 
-    // Combine short flags into a single -abc style string
+    // Build combined flag string e.g. -vik
     const flagLetters = [
       curlFlags.verbose ? "v" : "",
       curlFlags.includeHeaders ? "i" : "",
@@ -114,58 +116,67 @@ export default function TechTools() {
       curl += ` \\\n  -d '${curlBody.trim()}'`;
     }
 
-    if (curlResolve.trim()) {
-      // user should enter something like: example.com:443:127.0.0.1
-      curl += ` \\\n  --resolve '${curlResolve.trim()}'`;
-    }
-
     setCurlOutput(curl);
   };
 
-  // Build side-by-side rows using diff library
+  // DIFF: side-by-side rows builder
   const buildSideBySide = (oldText, newText) => {
+    // Use diffLines to get blocks
     const parts = diffLines(oldText, newText);
     const rows = [];
     let leftQueue = [];
     let rightQueue = [];
 
+    // We'll iterate over parts and align them:
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const lines = part.value.split("\n");
+      // remove trailing empty line that diff produces often
       if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
 
       if (part.added) {
-        lines.forEach((ln) => rightQueue.push({ text: ln }));
+        // additions go to rightQueue
+        lines.forEach((ln) => {
+          rightQueue.push({ text: ln });
+        });
       } else if (part.removed) {
-        lines.forEach((ln) => leftQueue.push({ text: ln }));
+        // deletions go to leftQueue
+        lines.forEach((ln) => {
+          leftQueue.push({ text: ln });
+        });
       } else {
-        // flush pending queues (pair deletes+adds to show as modifications)
+        // equal - flush any pending left/right by pairing
+        // pair leftQueue and rightQueue by index (modifies are when both had items)
         const maxQ = Math.max(leftQueue.length, rightQueue.length);
         for (let k = 0; k < maxQ; k++) {
           const l = leftQueue[k] ? leftQueue[k].text : "";
           const r = rightQueue[k] ? rightQueue[k].text : "";
-          rows.push(makeRow(l, r));
+          const row = makeRow(l, r);
+          rows.push(row);
         }
         leftQueue = [];
         rightQueue = [];
 
-        // then push unchanged lines
-        lines.forEach((ln) => rows.push(makeRow(ln, ln, "equal")));
+        // now add equal lines as pairs
+        lines.forEach((ln) => {
+          rows.push(makeRow(ln, ln, "equal"));
+        });
       }
     }
 
-    // pair any remaining queued lines
+    // After loop, pair remaining queues
     const maxQ = Math.max(leftQueue.length, rightQueue.length);
     for (let k = 0; k < maxQ; k++) {
       const l = leftQueue[k] ? leftQueue[k].text : "";
       const r = rightQueue[k] ? rightQueue[k].text : "";
-      rows.push(makeRow(l, r));
+      const row = makeRow(l, r);
+      rows.push(row);
     }
 
     return rows;
   };
 
-  // Decide row type and compute word diffs for modified lines
+  // helper: decide row type and compute word diffs for modified lines
   const makeRow = (left, right, forcedType = null) => {
     if (forcedType === "equal" || left === right) {
       return { type: "equal", left, right, leftTokens: null, rightTokens: null };
@@ -176,14 +187,16 @@ export default function TechTools() {
     if (!left && right) {
       return { type: "add", left: "", right, leftTokens: null, rightTokens: null };
     }
-    // modified line -> word diff
+    // both present but different -> compute word-level diff tokens
     const wordDiff = diffWords(left, right);
     const leftTokens = [];
     const rightTokens = [];
     wordDiff.forEach((p) => {
-      if (p.added) rightTokens.push({ text: p.value, added: true });
-      else if (p.removed) leftTokens.push({ text: p.value, removed: true });
-      else {
+      if (p.added) {
+        rightTokens.push({ text: p.value, added: true });
+      } else if (p.removed) {
+        leftTokens.push({ text: p.value, removed: true });
+      } else {
         leftTokens.push({ text: p.value });
         rightTokens.push({ text: p.value });
       }
@@ -200,8 +213,9 @@ export default function TechTools() {
     }
   };
 
-  // YAML <-> JSON helpers (simple)
+  // JSON <-> YAML helpers (simple converters)
   const yamlToJson = (yaml) => {
+    // Simple line-based YAML -> JSON converter (limited)
     const lines = yaml.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
     const result = {};
     const stack = [{ obj: result, indent: -1 }];
@@ -277,20 +291,22 @@ export default function TechTools() {
     }
   };
 
-  // JSON formatter
+  // JSON formatter uses numeric-only indentation selector
   const formatJson = () => {
     setError("");
     try {
       const parsed = JSON.parse(jsonInput);
-      if (jsonFormatMode === "format") setJsonOutput(JSON.stringify(parsed, null, parseInt(jsonIndent || "2")));
-      else setJsonOutput(JSON.stringify(parsed));
+      if (jsonFormatMode === "format") {
+        setJsonOutput(JSON.stringify(parsed, null, parseInt(jsonIndent || "2")));
+      } else {
+        setJsonOutput(JSON.stringify(parsed));
+      }
     } catch (e) {
       setError("Invalid JSON: " + e.message);
       setJsonOutput("");
     }
   };
 
-  // YAML formatter
   const formatYaml = () => {
     setError("");
     try {
@@ -303,15 +319,81 @@ export default function TechTools() {
     }
   };
 
-  // SQL formatter using sql-formatter; always 2-space indent in output
   const formatSql = () => {
     setError("");
     try {
-      const result = formatSQL(sqlInput || {
-        language: sqlDialect,
-        keywordCase: sqlKeywordCase === "upper" ? "upper" : "lower",
-        indent: "  ",
+      let formatted = sqlInput.replace(/\s+/g, " ").trim();
+      const keywords = [
+        "SELECT",
+        "FROM",
+        "WHERE",
+        "AND",
+        "OR",
+        "JOIN",
+        "LEFT JOIN",
+        "RIGHT JOIN",
+        "INNER JOIN",
+        "OUTER JOIN",
+        "ON",
+        "GROUP BY",
+        "ORDER BY",
+        "HAVING",
+        "LIMIT",
+        "OFFSET",
+        "INSERT INTO",
+        "VALUES",
+        "UPDATE",
+        "SET",
+        "DELETE FROM",
+        "CREATE TABLE",
+        "ALTER TABLE",
+        "DROP TABLE",
+        "UNION",
+        "UNION ALL",
+      ];
+      keywords.forEach((kw) => {
+        const regex = new RegExp(`\\b${kw}\\b`, "gi");
+        formatted = formatted.replace(regex, `\n${kw}`);
       });
+
+      formatted = formatted
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join("\n");
+
+      formatted = formatted.replace(/,/g, ",\n  ");
+      formatted = formatted.replace(/\(/g, "(\n  ");
+      formatted = formatted.replace(/\)/g, "\n)");
+
+      const lines = formatted.split("\n");
+      let indentLevel = 0;
+      const indentSpaces = parseInt(sqlIndent) || 2;
+      const getIndent = (level) => (sqlUseTab ? "\t".repeat(level) : " ".repeat(indentSpaces * level));
+
+      const formattedLines = lines.map((line) => {
+        const trimmed = line.trim();
+        if (trimmed.endsWith("(")) {
+          const res = getIndent(indentLevel) + trimmed;
+          indentLevel++;
+          return res;
+        } else if (trimmed.startsWith(")")) {
+          indentLevel = Math.max(0, indentLevel - 1);
+          return getIndent(indentLevel) + trimmed;
+        } else {
+          return getIndent(indentLevel) + trimmed;
+        }
+      });
+
+      let result = formattedLines.join("\n");
+
+      keywords.forEach((kw) => {
+        const regex = new RegExp(`\\b${kw}\\b`, "gi");
+        result = result.replace(regex, (match) => {
+          return sqlKeywordCase === "upper" ? match.toUpperCase() : match.toLowerCase();
+        });
+      });
+
       setSqlOutput(result);
     } catch (e) {
       setError("Error formatting SQL: " + e.message);
@@ -479,17 +561,6 @@ export default function TechTools() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Headers (one per line)</label>
-                    <textarea value={curlHeaders} onChange={(e) => setCurlHeaders(e.target.value)} className="w-full h-24 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm" placeholder="Content-Type: application/json&#10;Authorization: Bearer token" />
-                  </div>
-
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Resolve (optional)</label>
-                    <input type="text" value={curlResolve} onChange={(e) => setCurlResolve(e.target.value)} placeholder="example.com:443:127.0.0.1" className="w-full border border-gray-300 rounded-lg p-3 font-mono text-sm" />
-                  </div>
-
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">Flags</label>
                     <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                       <label className="flex items-start gap-3 cursor-pointer">
@@ -516,6 +587,10 @@ export default function TechTools() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Headers (one per line)</label>
+                    <textarea value={curlHeaders} onChange={(e) => setCurlHeaders(e.target.value)} className="w-full h-24 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm" placeholder="Content-Type: application/json&#10;Authorization: Bearer token" />
+                  </div>
 
                   {["POST", "PUT", "PATCH"].includes(curlMethod) && (
                     <div>
@@ -540,7 +615,7 @@ export default function TechTools() {
                 </div>
               )}
 
-              {/* Compare - Editor style side-by-side */}
+              {/* Compare - Side by side */}
               {activeView === "compare" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -557,49 +632,43 @@ export default function TechTools() {
                   <button onClick={compareTexts} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors">Compare Texts</button>
 
                   {diffRows.length > 0 && (
-                    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
-                      <div className="flex text-xs font-semibold text-gray-600">
-                        <div className="w-1/2 px-3 py-2 border-r">Old</div>
-                        <div className="w-1/2 px-3 py-2">New</div>
+                    <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto bg-white">
+                      <div className="flex text-xs font-semibold text-gray-600 mb-3">
+                        <div className="w-1/2">Old</div>
+                        <div className="w-1/2">New</div>
                       </div>
 
-                      <div className="grid grid-cols-2 text-sm font-mono" style={{ maxHeight: 480, overflow: "auto" }}>
-                        {/* Left pane */}
-                        <div className="border-r">
-                          {diffRows.map((row, idx) => (
-                            <div key={idx} className={`flex items-start`}>
-                              <div className="w-12 px-2 text-right bg-gray-100 text-gray-500 border-r">{idx + 1}</div>
-                              <div className={`flex-1 px-2 py-0.5 whitespace-pre-wrap ${row.type === "delete" ? "bg-red-50 text-red-800" : row.type === "modify" ? "bg-yellow-50" : "bg-white"}`}>
-                                {row.type === "modify" && row.leftTokens ? (
-                                  row.leftTokens.map((t, i) => (
-                                    <span key={i} className={`${t.removed ? "bg-red-200 line-through" : ""}`}>{t.text}</span>
-                                  ))
-                                ) : (
-                                  <span>{row.left || "(empty)"}</span>
-                                )}
+                      {diffRows.map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-2 gap-4 mb-2 items-start">
+                          {/* Left column */}
+                          <div className={`p-3 rounded border ${row.type === "delete" ? "bg-red-50 border-red-200 text-red-800" : row.type === "modify" ? "bg-yellow-50 border-yellow-200" : "bg-gray-50 border-gray-200"}`}>
+                            <div className="text-xs text-gray-500 mb-1">Line {idx + 1}</div>
+                            {row.type === "modify" && row.leftTokens ? (
+                              <div className="font-mono text-sm whitespace-pre-wrap">
+                                {row.leftTokens.map((t, i) => (
+                                  <span key={i} className={`${t.removed ? "bg-red-200 line-through" : ""}`}>{t.text}</span>
+                                ))}
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ) : (
+                              <div className="font-mono text-sm whitespace-pre-wrap">{row.left || "(empty)"}</div>
+                            )}
+                          </div>
 
-                        {/* Right pane */}
-                        <div>
-                          {diffRows.map((row, idx) => (
-                            <div key={idx} className={`flex items-start`}>
-                              <div className="w-12 px-2 text-right bg-gray-100 text-gray-500 border-r">{idx + 1}</div>
-                              <div className={`flex-1 px-2 py-0.5 whitespace-pre-wrap ${row.type === "add" ? "bg-green-50 text-green-800" : row.type === "modify" ? "bg-green-50" : "bg-white"}`}>
-                                {row.type === "modify" && row.rightTokens ? (
-                                  row.rightTokens.map((t, i) => (
-                                    <span key={i} className={`${t.added ? "bg-green-200" : ""}`}>{t.text}</span>
-                                  ))
-                                ) : (
-                                  <span>{row.right || "(empty)"}</span>
-                                )}
+                          {/* Right column */}
+                          <div className={`p-3 rounded border ${row.type === "add" ? "bg-green-50 border-green-200 text-green-800" : row.type === "modify" ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
+                            <div className="text-xs text-gray-500 mb-1">Line {idx + 1}</div>
+                            {row.type === "modify" && row.rightTokens ? (
+                              <div className="font-mono text-sm whitespace-pre-wrap">
+                                {row.rightTokens.map((t, i) => (
+                                  <span key={i} className={`${t.added ? "bg-green-200" : ""}`}>{t.text}</span>
+                                ))}
                               </div>
-                            </div>
-                          ))}
+                            ) : (
+                              <div className="font-mono text-sm whitespace-pre-wrap">{row.right || "(empty)"}</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -634,7 +703,7 @@ export default function TechTools() {
                 </div>
               )}
 
-              {/* JSON Formatter */}
+              {/* JSON Formatter (indentation number only) */}
               {activeView === "json-format" && (
                 <div className="space-y-4">
                   <div className="flex gap-3">
@@ -673,7 +742,7 @@ export default function TechTools() {
                 </div>
               )}
 
-              {/* YAML Formatter */}
+              {/* YAML Formatter (indentation number + type) */}
               {activeView === "yaml-format" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -718,32 +787,30 @@ export default function TechTools() {
               {/* SQL Formatter */}
               {activeView === "sql-format" && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Keyword Case</label>
-                    <select value={sqlKeywordCase} onChange={(e) => setSqlKeywordCase(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3">
-                      <option value="upper">UPPERCASE</option>
-                      <option value="lower">lowercase</option>
-                    </select>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Keyword Case</label>
+                      <select value={sqlKeywordCase} onChange={(e) => setSqlKeywordCase(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3">
+                        <option value="upper">UPPERCASE</option>
+                        <option value="lower">lowercase</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Indentation</label>
+                      <select value={sqlIndent} onChange={(e) => setSqlIndent(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3">
+                        <option value="2">2 spaces</option>
+                        <option value="4">4 spaces</option>
+                        <option value="8">8 spaces</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Indent Type</label>
+                      <div className="flex gap-2 h-12 items-center">
+                        <button onClick={() => setSqlUseTab(false)} className={`flex-1 px-3 py-2 rounded-lg font-medium transition-colors text-sm ${!sqlUseTab ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>Spaces</button>
+                        <button onClick={() => setSqlUseTab(true)} className={`flex-1 px-3 py-2 rounded-lg font-medium transition-colors text-sm ${sqlUseTab ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>Tabs</button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">SQL Dialect</label>
-                    <select
-                      value={sqlDialect}
-                      onChange={(e) => setSqlDialect(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg p-3"
-                    >
-                      <option value="sql">Standard SQL</option>
-                      <option value="postgresql">PostgreSQL</option>
-                      <option value="mysql">MySQL</option>
-                      <option value="mariadb">MariaDB</option>
-                      <option value="sqlite">SQLite</option>
-                      <option value="oracle">Oracle</option>
-                      <option value="db2">DB2</option>
-                      <option value="plsql">PL/SQL</option>
-                    </select>
-                  </div>
-
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">SQL Input</label>
