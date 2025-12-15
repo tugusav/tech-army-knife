@@ -11,6 +11,7 @@ import { SqlFormatterTool } from '../tools/SqlFormatterTool';
 import { RegexTool } from '../tools/RegexTool';
 import { JwtTool } from '../tools/JwtTool';
 import { CsvJsonTool } from '../tools/CsvJsonTool';
+import { JsonXmlTool } from '../tools/JsonXmlTool';
 
 interface ToolPageProps {
   activeView: string;
@@ -54,6 +55,7 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
         {activeView === 'regex' && <RegexTool darkMode={darkMode} setError={setError} />}
         {activeView === 'jwt' && <JwtTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'csv-json' && <CsvJsonTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
+        {activeView === 'json-xml' && <JsonXmlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
       </div>
     </div>
   );

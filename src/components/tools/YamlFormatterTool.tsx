@@ -1,7 +1,7 @@
-// src/components/tools/YamlFormatterTool.tsx
 import React, { useState } from 'react';
 import { OutputBox } from '../common/OutputBox';
 import { yamlToJson, jsonToYaml } from '../../utils/yamlUtils';
+import { useHistory } from '../../contexts/HistoryContext';
 
 interface YamlFormatterToolProps {
   darkMode: boolean;
@@ -15,6 +15,7 @@ export function YamlFormatterTool({ darkMode, copied, copyToClipboard, setError 
   const [output, setOutput] = useState('');
   const [indent, setIndent] = useState('2');
   const [useTab, setUseTab] = useState(false);
+  const { addToHistory } = useHistory();
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 
@@ -23,7 +24,9 @@ export function YamlFormatterTool({ darkMode, copied, copyToClipboard, setError 
     try {
       const json = yamlToJson(input);
       const indentSpaces = parseInt(indent) || 2;
-      setOutput(jsonToYaml(json, indentSpaces, useTab));
+      const result = jsonToYaml(json, indentSpaces, useTab);
+      setOutput(result);
+      addToHistory(result, 'YAML Formatter');
     } catch (e: any) {
       setError('Invalid YAML: ' + e.message);
       setOutput('');

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText } from 'lucide-react';
+import { Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { HistoryProvider } from './contexts/HistoryContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { HomePage } from './components/layout/HomePage';
 import { ToolPage } from './components/layout/ToolPage';
+import { HistorySidebar } from './components/layout/HistorySidebar';
 import { Tool } from './types';
 
 function AppContent() {
@@ -12,6 +14,7 @@ function AppContent() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -24,6 +27,7 @@ function AppContent() {
     { id: 'curl', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
     { id: 'compare', name: 'Text Compare', category: 'text', icon: GitCompare, desc: 'Side-by-side git-style diff.' },
     { id: 'json-yaml', name: 'JSON ⟷ YAML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and YAML.' },
+    { id: 'json-xml', name: 'JSON ⟷ XML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and XML.' },
     { id: 'json-format', name: 'JSON Formatter', category: 'formatting', icon: FileJson, desc: 'Format and beautify JSON.' },
     { id: 'yaml-format', name: 'YAML Formatter', category: 'formatting', icon: FileCode, desc: 'Format and beautify YAML.' },
     { id: 'sql-format', name: 'SQL Formatter', category: 'formatting', icon: Database, desc: 'Format SQL queries.' },
@@ -42,7 +46,24 @@ function AppContent() {
   const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
 
   return (
-    <div className={`flex h-screen ${bgClass} relative`}>
+    <div className={`flex h-screen ${bgClass} relative overflow-hidden`}>
+      <HistorySidebar 
+        isOpen={historyOpen} 
+        onClose={() => setHistoryOpen(false)} 
+        darkMode={darkMode}
+        copyToClipboard={copyToClipboard}
+      />
+
+      {/* Detail: Floating History Toggle Button */}
+      <button
+        onClick={() => setHistoryOpen(!historyOpen)}
+        className={`fixed top-4 right-4 z-[40] p-2 rounded-lg shadow-lg transition-colors ${
+          darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-50'
+        }`}
+        title="Toggle History"
+      >
+        <History size={20} />
+      </button>
 
       {/* Desktop Sidebar */}
       <div className="hidden md:flex">
@@ -60,7 +81,7 @@ function AppContent() {
 
       {/* Mobile Top Bar */}
       <div
-        className={`md:hidden fixed top-0 left-0 right-0 h-12 flex items-center px-4 shadow z-[90] ${
+        className={`md:hidden fixed top-0 left-0 right-0 h-12 flex items-center px-4 shadow z-[30] ${
           darkMode ? 'bg-gray-900' : 'bg-gray-50'
         }`}
       >
@@ -137,7 +158,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <HistoryProvider>
+        <AppContent />
+      </HistoryProvider>
     </ThemeProvider>
   );
 }

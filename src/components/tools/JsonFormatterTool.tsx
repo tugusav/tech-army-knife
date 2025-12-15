@@ -1,6 +1,6 @@
-// src/components/tools/JsonFormatterTool.tsx
 import React, { useState } from 'react';
 import { OutputBox } from '../common/OutputBox';
+import { useHistory } from '../../contexts/HistoryContext';
 
 interface JsonFormatterToolProps {
   darkMode: boolean;
@@ -14,6 +14,7 @@ export function JsonFormatterTool({ darkMode, copied, copyToClipboard, setError 
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<'format' | 'minify'>('format');
   const [indent, setIndent] = useState('2');
+  const { addToHistory } = useHistory();
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 
@@ -21,11 +22,14 @@ export function JsonFormatterTool({ darkMode, copied, copyToClipboard, setError 
     setError('');
     try {
       const parsed = JSON.parse(input);
+      let result = '';
       if (mode === 'format') {
-        setOutput(JSON.stringify(parsed, null, parseInt(indent) || 2));
+        result = JSON.stringify(parsed, null, parseInt(indent) || 2);
       } else {
-        setOutput(JSON.stringify(parsed));
+        result = JSON.stringify(parsed);
       }
+      setOutput(result);
+      addToHistory(result, mode === 'format' ? 'JSON Formatter' : 'JSON Minifier');
     } catch (e: any) {
       setError('Invalid JSON: ' + e.message);
       setOutput('');

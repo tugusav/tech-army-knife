@@ -1,24 +1,25 @@
 {
-    "name": "tech-army-knife",
-    "version": "1.0.0",
-    "type": "module",
-    "scripts": {
-      "dev": "vite",
-      "build": "vite build",
-      "preview": "vite preview"
-    },
-    "dependencies": {
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0",
-      "lucide-react": "^0.263.1",
-      "diff": "^5.2.0",
-      "sql-formatter": "^15.6.10"
-    },
-    "devDependencies": {
-      "@vitejs/plugin-react": "^4.0.0",
-      "autoprefixer": "^10.4.14",
-      "postcss": "^8.4.24",
-      "tailwindcss": "^3.3.2",
-      "vite": "^4.3.9"
-    }
+  "name": "tech-army-knife",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "diff": "^5.2.0",
+    "fast-xml-parser": "^5.3.3",
+    "lucide-react": "^0.263.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sql-formatter": "^15.6.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "vite": "^4.3.9"
   }
+}

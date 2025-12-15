@@ -1,7 +1,7 @@
-// src/components/tools/SqlFormatterTool.tsx
 import React, { useState } from 'react';
 import { format as formatSQL } from 'sql-formatter';
 import { OutputBox } from '../common/OutputBox';
+import { useHistory } from '../../contexts/HistoryContext';
 
 interface SqlFormatterToolProps {
   darkMode: boolean;
@@ -15,6 +15,7 @@ export function SqlFormatterTool({ darkMode, copied, copyToClipboard, setError }
   const [output, setOutput] = useState('');
   const [keywordCase, setKeywordCase] = useState<'upper' | 'lower'>('upper');
   const [dialect, setDialect] = useState('sql');
+  const { addToHistory } = useHistory();
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 
@@ -27,6 +28,7 @@ export function SqlFormatterTool({ darkMode, copied, copyToClipboard, setError }
         indent: '  ',
       });
       setOutput(result);
+      addToHistory(result, 'SQL Formatter');
     } catch (e: any) {
       setError('Error formatting SQL: ' + e.message);
       setOutput('');

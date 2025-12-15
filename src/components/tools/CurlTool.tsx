@@ -1,6 +1,6 @@
-// src/components/tools/CurlTool.tsx
 import React, { useState } from 'react';
 import { OutputBox } from '../common/OutputBox';
+import { useHistory } from '../../contexts/HistoryContext';
 
 interface CurlToolProps {
   darkMode: boolean;
@@ -17,6 +17,7 @@ export function CurlTool({ darkMode, copied, copyToClipboard, setError }: CurlTo
   const [curlOutput, setCurlOutput] = useState('');
   const [curlFlags, setCurlFlags] = useState({ verbose: false, includeHeaders: false, insecure: false });
   const [curlResolve, setCurlResolve] = useState('');
+  const { addToHistory } = useHistory();
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 
@@ -52,6 +53,7 @@ export function CurlTool({ darkMode, copied, copyToClipboard, setError }: CurlTo
     }
 
     setCurlOutput(curl);
+    addToHistory(curl, 'cURL Generator');
   };
 
   return (

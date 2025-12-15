@@ -1,6 +1,6 @@
-// src/components/tools/Base64Tool.tsx
 import React, { useState } from 'react';
 import { OutputBox } from '../common/OutputBox';
+import { useHistory } from '../../contexts/HistoryContext';
 
 interface Base64ToolProps {
   darkMode: boolean;
@@ -13,6 +13,7 @@ export function Base64Tool({ darkMode, copied, copyToClipboard, setError }: Base
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState<'encode' | 'decode'>('encode');
+  const { addToHistory } = useHistory();
 
   const inputClass = darkMode 
     ? 'bg-gray-700 border-gray-600 text-white' 
@@ -25,8 +26,14 @@ export function Base64Tool({ darkMode, copied, copyToClipboard, setError }: Base
   const handleConvert = () => {
     setError('');
     try {
-      if (mode === 'encode') setOutput(btoa(input));
-      else setOutput(atob(input));
+      let result = '';
+      if (mode === 'encode') {
+        result = btoa(input);
+      } else {
+        result = atob(input);
+      }
+      setOutput(result);
+      addToHistory(result, mode === 'encode' ? 'Base64 Encode' : 'Base64 Decode');
     } catch (e) {
       setError('Invalid input for conversion');
       setOutput('');
