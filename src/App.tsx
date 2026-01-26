@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History } from 'lucide-react';
+import { 
+  Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History,
+  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX
+} from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { HistoryProvider } from './contexts/HistoryContext';
 import { Sidebar } from './components/layout/Sidebar';
@@ -24,23 +27,33 @@ function AppContent() {
 
   const tools: Tool[] = [
     { id: 'base64', name: 'Base64 Converter', category: 'encoding', icon: Code2, desc: 'Encode or decode Base64 strings.' },
+    { id: 'url-encoder', name: 'URL Encoder/Decoder', category: 'encoding', icon: Link, desc: 'Encode or decode URL strings.' },
     { id: 'curl', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
     { id: 'compare', name: 'Text Compare', category: 'text', icon: GitCompare, desc: 'Side-by-side git-style diff.' },
     { id: 'json-yaml', name: 'JSON ⟷ YAML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and YAML.' },
     { id: 'json-xml', name: 'JSON ⟷ XML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and XML.' },
-    { id: 'json-format', name: 'JSON Formatter', category: 'formatting', icon: FileJson, desc: 'Format and beautify JSON.' },
+    { id: 'json-format', name: 'JSON Formatter', category: 'formatting', icon: Braces, desc: 'Format and beautify JSON.' },
+    { id: 'json-viewer', name: 'JSON Viewer', category: 'viewer', icon: Eye, desc: 'View and analyze JSON data.' },
     { id: 'yaml-format', name: 'YAML Formatter', category: 'formatting', icon: FileCode, desc: 'Format and beautify YAML.' },
+    { id: 'yaml-viewer', name: 'YAML Viewer', category: 'viewer', icon: FileType, desc: 'View and analyze YAML data.' },
+    { id: 'xml-viewer', name: 'XML Viewer', category: 'viewer', icon: FileX, desc: 'View and analyze XML data.' },
     { id: 'sql-format', name: 'SQL Formatter', category: 'formatting', icon: Database, desc: 'Format SQL queries.' },
     { id: 'regex', name: 'Regex Tester', category: 'text', icon: Code2, desc: 'Test and generate regex patterns.' },
-    { id: 'jwt', name: 'JWT Tool', category: 'encoding', icon: Code2, desc: 'Encode and decode JWT tokens.' },
+    { id: 'jwt', name: 'JWT Tool', category: 'encoding', icon: Key, desc: 'Encode and decode JWT tokens.' },
     { id: 'csv-json', name: 'CSV ⟷ JSON', category: 'conversion', icon: FileText, desc: 'Convert between CSV and JSON.' },
+    { id: 'uuid-generator', name: 'UUID Generator', category: 'generator', icon: Hash, desc: 'Generate and validate UUIDs.' },
+    { id: 'timestamp', name: 'Timestamp Converter', category: 'generator', icon: Clock, desc: 'Convert Unix timestamps and dates.' },
+    { id: 'cron', name: 'Cron Calculator', category: 'generator', icon: Calendar, desc: 'Create and analyze cron expressions.' },
+    { id: 'hash-generator', name: 'Hash Generator', category: 'encoding', icon: Hash, desc: 'Generate MD5, SHA1, SHA256, SHA512 hashes.' },
   ];
 
   const categories = [
-    { name: 'TEXT & CONTENT', items: tools.filter((t) => t.category === 'text') },
-    { name: 'ENCODING & CONVERSION', items: tools.filter((t) => ['encoding', 'conversion'].includes(t.category)) },
-    { name: 'FORMATTING', items: tools.filter((t) => t.category === 'formatting') },
     { name: 'API TOOLS', items: tools.filter((t) => t.category === 'api') },
+    { name: 'FORMATTING & VIEWERS', items: tools.filter((t) => ['formatting', 'viewer'].includes(t.category)) },
+    { name: 'ENCODING & CONVERSION', items: tools.filter((t) => ['encoding', 'conversion'].includes(t.category)) },
+    { name: 'GENERATORS & UTILITIES', items: tools.filter((t) => t.category === 'generator') },
+    { name: 'TEXT & CONTENT', items: tools.filter((t) => t.category === 'text') },
+
   ];
 
   const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
