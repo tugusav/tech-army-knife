@@ -16,6 +16,7 @@ export function TimestampTool({ darkMode, copied, copyToClipboard, setError }: T
   const [convertedResult, setConvertedResult] = useState('');
   const [mode, setMode] = useState<'current' | 'convert' | 'generate'>('current');
   const [copiedStates, setCopiedStates] = useState<{[key: string]: boolean}>({});
+  const [selectedTimezone, setSelectedTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const { addToHistory } = useHistory();
 
   const copySpecificFormat = (value: string, formatKey: string) => {
@@ -36,6 +37,23 @@ export function TimestampTool({ darkMode, copied, copyToClipboard, setError }: T
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
 
+  // Common timezones
+  const commonTimezones = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Asia/Tokyo',
+    'Asia/Shanghai',
+    'Asia/Kolkata',
+    'Australia/Sydney',
+    Intl.DateTimeFormat().resolvedOptions().timeZone // User's local timezone
+  ];
+
   // Update current timestamp every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -51,6 +69,7 @@ export function TimestampTool({ darkMode, copied, copyToClipboard, setError }: T
       iso: date.toISOString(),
       utc: date.toUTCString(),
       local: date.toLocaleString(),
+      timezone: date.toLocaleString('en-US', { timeZone: selectedTimezone }),
       date: date.toDateString(),
       time: date.toTimeString(),
     };
@@ -138,17 +157,60 @@ Time: ${formatted.time}`;
     return result;
   };
 
-  const presetTimestamps = [
-    { label: 'Now', value: () => Math.floor(Date.now() / 1000) },
-    { label: 'Start of Today', value: () => Math.floor(new Date().setHours(0, 0, 0, 0) / 1000) },
-    { label: 'End of Today', value: () => Math.floor(new Date().setHours(23, 59, 59, 999) / 1000) },
-    { label: 'Start of Week', value: () => {
-      const now = new Date();
-      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-      return Math.floor(startOfWeek.setHours(0, 0, 0, 0) / 1000);
-    }},
-    { label: 'Start of Month', value: () => Math.floor(new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime() / 1000) },
-    { label: 'Start of Year', value: () => Math.floor(new Date(new Date().getFullYear(), 0, 1).getTime() / 1000) },
+  // Update presetTimestamps to be reactive to timezone changes
+  const getPresetTimestamps = () => [
+    { 
+      label: 'Now', 
+      value: () => Math.floor(Date.now() / 1000) 
+    },
+    { 
+      label: 'Start of Today', 
+      value: () => {
+        const now = new Date();
+        // Get the current time in the selected timezone
+        const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+        const startOfDay = new Date(timeInTimezone.getFullYear(), timeInTimezone.getMonth(), timeInTimezone.getDate(), 0, 0, 0, 0);
+        return Math.floor(startOfDay.getTime() / 1000);
+      }
+    },
+    { 
+      label: 'End of Today', 
+      value: () => {
+        const now = new Date();
+        const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+        const endOfDay = new Date(timeInTimezone.getFullYear(), timeInTimezone.getMonth(), timeInTimezone.getDate(), 23, 59, 59, 999);
+        return Math.floor(endOfDay.getTime() / 1000);
+      }
+    },
+    { 
+      label: 'Start of Week', 
+      value: () => {
+        const now = new Date();
+        const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+        const startOfWeek = new Date(timeInTimezone);
+        startOfWeek.setDate(timeInTimezone.getDate() - timeInTimezone.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        return Math.floor(startOfWeek.getTime() / 1000);
+      }
+    },
+    { 
+      label: 'Start of Month', 
+      value: () => {
+        const now = new Date();
+        const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+        const startOfMonth = new Date(timeInTimezone.getFullYear(), timeInTimezone.getMonth(), 1, 0, 0, 0, 0);
+        return Math.floor(startOfMonth.getTime() / 1000);
+      }
+    },
+    { 
+      label: 'Start of Year', 
+      value: () => {
+        const now = new Date();
+        const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+        const startOfYear = new Date(timeInTimezone.getFullYear(), 0, 1, 0, 0, 0, 0);
+        return Math.floor(startOfYear.getTime() / 1000);
+      }
+    },
   ];
 
   return (
@@ -182,6 +244,24 @@ Time: ${formatted.time}`;
           </div>
         </div>
 
+        {/* Timezone Picker */}
+        <div className="space-y-2">
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Timezone
+          </label>
+          <select
+            value={selectedTimezone}
+            onChange={(e) => setSelectedTimezone(e.target.value)}
+            className={`w-full border rounded-lg p-3 ${inputClass}`}
+          >
+            {commonTimezones.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz} {tz === Intl.DateTimeFormat().resolvedOptions().timeZone ? '(Local)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Current Time Mode */}
         {mode === 'current' && (
           <div className="space-y-4">
@@ -193,14 +273,9 @@ Time: ${formatted.time}`;
                 <div>Unix: {currentTimestamp}</div>
                 <div>ISO: {new Date().toISOString()}</div>
                 <div>Local: {new Date().toLocaleString()}</div>
+                <div>Timezone ({selectedTimezone.split('/').pop()}): {new Date().toLocaleString('en-US', { timeZone: selectedTimezone })}</div>
               </div>
             </div>
-            <button
-              onClick={() => copyToClipboard(getCurrentFormatted())}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors"
-            >
-              Copy Current Timestamp Info
-            </button>
           </div>
         )}
 
@@ -228,7 +303,7 @@ Time: ${formatted.time}`;
                 Quick Presets
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {presetTimestamps.slice(0, 6).map((preset) => (
+                {getPresetTimestamps().slice(0, 6).map((preset) => (
                   <button
                     key={preset.label}
                     onClick={() => setInputTimestamp(preset.value().toString())}
@@ -241,15 +316,38 @@ Time: ${formatted.time}`;
                 ))}
               </div>
             </div>
+          </div>
+        )}
 
+        {/* Action Buttons - Moved below inputs */}
+        <div className="space-y-3 pt-4 border-t border-gray-600">
+          {mode === 'current' && (
+            <button
+              onClick={() => copyToClipboard(getCurrentFormatted())}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg rounded-lg transition-colors"
+            >
+              Copy Current Timestamp Info
+            </button>
+          )}
+          
+          {mode === 'convert' && (
             <button
               onClick={convertTimestamp}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg rounded-lg transition-colors"
             >
               Convert Timestamp
             </button>
-          </div>
-        )}
+          )}
+          
+          {mode === 'generate' && (
+            <button
+              onClick={convertDateToTimestamp}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg rounded-lg transition-colors"
+            >
+              Generate Timestamp
+            </button>
+          )}
+        </div>
 
         {/* Generate from Date Mode */}
         {mode === 'generate' && (
@@ -293,27 +391,42 @@ Time: ${formatted.time}`;
                 <button
                   onClick={() => {
                     const now = new Date();
-                    setInputDate(now.toISOString().slice(0, 16));
+                    // Get current time in selected timezone and format for datetime-local input
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    const month = String(timeInTimezone.getMonth() + 1).padStart(2, '0');
+                    const day = String(timeInTimezone.getDate()).padStart(2, '0');
+                    const hours = String(timeInTimezone.getHours()).padStart(2, '0');
+                    const minutes = String(timeInTimezone.getMinutes()).padStart(2, '0');
+                    setInputDate(`${year}-${month}-${day}T${hours}:${minutes}`);
                   }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                   } transition-colors`}
                 >
-                  Now
+                  Now ({selectedTimezone.split('/').pop()})
                 </button>
                 <button
-                  onClick={() => setInputDate('2024-01-01T00:00')}
+                  onClick={() => {
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    setInputDate(`${year}-01-01T00:00`);
+                  }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                   } transition-colors`}
                 >
-                  2024 Start
+                  Year Start
                 </button>
                 <button
                   onClick={() => {
-                    const startOfDay = new Date();
-                    startOfDay.setHours(0, 0, 0, 0);
-                    setInputDate(startOfDay.toISOString().slice(0, 16));
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    const month = String(timeInTimezone.getMonth() + 1).padStart(2, '0');
+                    const day = String(timeInTimezone.getDate()).padStart(2, '0');
+                    setInputDate(`${year}-${month}-${day}T00:00`);
                   }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -323,9 +436,28 @@ Time: ${formatted.time}`;
                 </button>
                 <button
                   onClick={() => {
-                    const endOfDay = new Date();
-                    endOfDay.setHours(23, 59, 59, 999);
-                    setInputDate(endOfDay.toISOString().slice(0, 16));
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    const month = String(timeInTimezone.getMonth() + 1).padStart(2, '0');
+                    setInputDate(`${year}-${month}-01T00:00`);
+                  }}
+                  className={`text-sm p-2 rounded ${
+                    darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  } transition-colors`}
+                >
+                  Month Start
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    const month = String(timeInTimezone.getMonth() + 1).padStart(2, '0');
+                    const day = String(timeInTimezone.getDate()).padStart(2, '0');
+                    setInputDate(`${year}-${month}-${day}T23:59`);
                   }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -335,10 +467,10 @@ Time: ${formatted.time}`;
                 </button>
                 <button
                   onClick={() => {
-                    const christmas = new Date();
-                    christmas.setMonth(11, 25); // December 25
-                    christmas.setHours(0, 0, 0, 0);
-                    setInputDate(christmas.toISOString().slice(0, 16));
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const year = timeInTimezone.getFullYear();
+                    setInputDate(`${year}-12-25T00:00`);
                   }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -348,8 +480,10 @@ Time: ${formatted.time}`;
                 </button>
                 <button
                   onClick={() => {
-                    const newYear = new Date(new Date().getFullYear() + 1, 0, 1, 0, 0, 0, 0);
-                    setInputDate(newYear.toISOString().slice(0, 16));
+                    const now = new Date();
+                    const timeInTimezone = new Date(now.toLocaleString('en-US', { timeZone: selectedTimezone }));
+                    const nextYear = timeInTimezone.getFullYear() + 1;
+                    setInputDate(`${nextYear}-01-01T00:00`);
                   }}
                   className={`text-sm p-2 rounded ${
                     darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -359,13 +493,6 @@ Time: ${formatted.time}`;
                 </button>
               </div>
             </div>
-
-            <button
-              onClick={convertDateToTimestamp}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors"
-            >
-              Generate Timestamp
-            </button>
           </div>
         )}
       </div>

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { OutputBox } from '../common/OutputBox';
 import { useHistory } from '../../contexts/HistoryContext';
 
 interface CronToolProps {
@@ -10,13 +9,13 @@ interface CronToolProps {
 }
 
 export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronToolProps) {
-  const [cronExpression, setCronExpression] = useState('0 0 * * *');
+  const [cronParts, setCronParts] = useState(['0', '0', '*', '*', '*']); // [minute, hour, day, month, weekday]
   const [description, setDescription] = useState('');
   const [nextRuns, setNextRuns] = useState<string[]>([]);
   const [copiedStates, setCopiedStates] = useState<{[key: string]: boolean}>({});
   const { addToHistory } = useHistory();
 
-  const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
+  const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white text-center' : 'bg-white border-gray-300 text-gray-900 text-center';
 
   const copySpecificItem = (value: string, itemKey: string) => {
     copyToClipboard(value);
@@ -26,101 +25,21 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     }, 1500);
   };
 
-  // Handle input change with auto-formatting
-  const handleCronInputChange = (value: string) => {
-    // Auto-format as user types for common patterns
-    let formatted = value;
-    
-    // If user types without spaces and we can detect a pattern, auto-format
-    if (!value.includes(' ') && value.length >= 5) {
-      // Try to auto-format common patterns
-      if (value.match(/^\d+\*{4}$/)) {
-        // Pattern like "0****" -> "0 0 * * *"
-        const firstChar = value[0];
-        formatted = `${firstChar} ${firstChar === '0' ? '0' : firstChar} * * *`;
-      } else if (value.match(/^\*\/\d+\*{4}$/)) {
-        // Pattern like "*/5****" -> "*/5 * * * *"
-        const interval = value.match(/\d+/)?.[0] || '5';
-        formatted = `*/${interval} * * * *`;
-      } else if (value.match(/^\d{2}\*{3}$/)) {
-        // Pattern like "00***" -> "0 0 * * *"
-        const hour = value.substring(0, 2);
-        formatted = `0 ${parseInt(hour)} * * *`;
-      } else if (value.match(/^\d{1,2}\d{2}\*{2}$/)) {
-        // Pattern like "0900**" -> "0 9 * * *"
-        const timeStr = value.replace(/\*{2}$/, '');
-        if (timeStr.length === 4) {
-          const hour = parseInt(timeStr.substring(0, 2));
-          const minute = parseInt(timeStr.substring(2, 4));
-          formatted = `${minute} ${hour} * * *`;
-        }
-      }
-    }
-    
-    setCronExpression(formatted);
+  // Update individual cron part
+  const updateCronPart = (index: number, value: string) => {
+    const newParts = [...cronParts];
+    newParts[index] = value;
+    setCronParts(newParts);
   };
 
-  // Normalize cron expression by adding spaces if missing
-  const normalizeCronExpression = (cron: string): string => {
-    // Remove extra spaces and trim
-    const cleaned = cron.trim().replace(/\s+/g, ' ');
-    
-    // If no spaces, try to split into 5 parts automatically
-    if (!cleaned.includes(' ') && cleaned.length >= 5) {
-      // For expressions like "00***" or "0 0***", try to intelligently split
-      const chars = cleaned.split('');
-      const parts: string[] = [];
-      let currentPart = '';
-      
-      for (let i = 0; i < chars.length; i++) {
-        const char = chars[i];
-        
-        // If we encounter a digit followed by a non-digit (except for ranges like 1-5)
-        if (currentPart && 
-            /\d/.test(currentPart[currentPart.length - 1]) && 
-            /[^\d\-,]/.test(char) && 
-            parts.length < 4) {
-          parts.push(currentPart);
-          currentPart = char;
-        } else {
-          currentPart += char;
-        }
-      }
-      
-      // Add the last part
-      if (currentPart) {
-        parts.push(currentPart);
-      }
-      
-      // If we got exactly 5 parts, join with spaces
-      if (parts.length === 5) {
-        return parts.join(' ');
-      }
+  // Get the full cron expression
+  const getCronExpression = () => cronParts.join(' ');
+
+  const loadPreset = (expression: string) => {
+    const parts = expression.split(' ');
+    if (parts.length === 5) {
+      setCronParts(parts);
     }
-    
-    // If still no spaces and looks like a compact format, try common patterns
-    if (!cleaned.includes(' ')) {
-      // Common patterns like "0****" (daily at midnight)
-      if (cleaned.match(/^0\*{4}$/)) {
-        return '0 0 * * *';
-      }
-      // Pattern like "*/5****" (every 5 minutes)
-      if (cleaned.match(/^\*\/\d+\*{4}$/)) {
-        const interval = cleaned.match(/\d+/)?.[0] || '5';
-        return `*/${interval} * * * *`;
-      }
-      // Pattern like "00***" (daily at midnight)
-      if (cleaned.match(/^00\*{3}$/)) {
-        return '0 0 * * *';
-      }
-      // Pattern like "0900**" (daily at 9 AM)
-      if (cleaned.match(/^0?\d{1,2}00\*{2}$/)) {
-        const hour = cleaned.replace(/00\*{2}$/, '');
-        return `0 ${parseInt(hour)} * * *`;
-      }
-    }
-    
-    return cleaned;
   };
 
   const cronPresets = [
@@ -200,6 +119,7 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     if (j === 3 && k !== 13) return 'rd';
     return 'th';
   };
+
   const calculateNextRuns = (cron: string, count: number = 5): string[] => {
     const parts = cron.trim().split(/\s+/);
     if (parts.length !== 5) return [];
@@ -264,27 +184,21 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
 
   const analyzeCron = () => {
     setError('');
+    const cronExpression = getCronExpression();
+    
     if (!cronExpression.trim()) {
       setError('Cron expression is required');
       return;
     }
 
     try {
-      // Normalize the cron expression first
-      const normalizedCron = normalizeCronExpression(cronExpression);
-      
-      // Update the input field with the normalized version if it changed
-      if (normalizedCron !== cronExpression) {
-        setCronExpression(normalizedCron);
-      }
-      
-      const desc = parseCronExpression(normalizedCron);
-      const runs = calculateNextRuns(normalizedCron);
+      const desc = parseCronExpression(cronExpression);
+      const runs = calculateNextRuns(cronExpression);
       
       setDescription(desc);
       setNextRuns(runs);
       
-      const result = `Cron Expression: ${normalizedCron}
+      const result = `Cron Expression: ${cronExpression}
 Description: ${desc}
 Next 5 runs:
 ${runs.map((run, i) => `${i + 1}. ${run}`).join('\n')}`;
@@ -303,46 +217,61 @@ ${runs.map((run, i) => `${i + 1}. ${run}`).join('\n')}`;
           Cron Expression
         </h3>
 
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={cronExpression}
-              onChange={(e) => handleCronInputChange(e.target.value)}
-              placeholder="0 0 * * *"
-              className={`flex-1 border rounded-lg p-3 font-mono ${inputClass}`}
-            />
-            <button
-              onClick={analyzeCron}
-              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Analyze
-            </button>
-          </div>
-          
-          {cronExpression && (
-            <div className="flex justify-between items-center">
-              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-                Format: minute hour day month weekday (0-6, Sunday=0)
-                {!cronExpression.includes(' ') && cronExpression.length >= 5 && (
-                  <span className={`ml-2 ${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                    • Spaces will be added automatically when analyzed
-                  </span>
-                )}
-              </p>
-              <button
-                onClick={() => copySpecificItem(cronExpression, 'cron-expression')}
-                className={`px-2 py-1 text-xs rounded transition-colors ${
-                  copiedStates['cron-expression']
-                    ? 'bg-green-600 text-white'
-                    : darkMode
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {copiedStates['cron-expression'] ? 'Copied!' : 'Copy Expression'}
-              </button>
+        <div className="space-y-4">
+          {/* 5 Separate Input Boxes */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { label: 'Min', placeholder: '0-59', index: 0 },
+                { label: 'Hour', placeholder: '0-23', index: 1 },
+                { label: 'Day', placeholder: '1-31', index: 2 },
+                { label: 'Month', placeholder: '1-12', index: 3 },
+                { label: 'Weekday', placeholder: '0-6', index: 4 }
+              ].map((field) => (
+                <div key={field.index} className="text-center">
+                  <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {field.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={cronParts[field.index]}
+                    onChange={(e) => updateCronPart(field.index, e.target.value)}
+                    placeholder={field.placeholder}
+                    className={`w-full h-12 border rounded-lg font-mono text-lg font-bold ${inputClass}`}
+                  />
+                </div>
+              ))}
             </div>
+            
+            <div className="text-center">
+              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                Current expression: <span className="font-mono font-bold">{getCronExpression()}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Analyze Button */}
+          <button
+            onClick={analyzeCron}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-lg rounded-lg transition-colors"
+          >
+            Analyze Cron Expression
+          </button>
+
+          {/* Copy Expression Button */}
+          {getCronExpression() && (
+            <button
+              onClick={() => copySpecificItem(getCronExpression(), 'cron-expression')}
+              className={`w-full py-2 text-sm rounded-lg transition-colors ${
+                copiedStates['cron-expression']
+                  ? 'bg-green-600 text-white'
+                  : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {copiedStates['cron-expression'] ? 'Copied Expression!' : 'Copy Expression'}
+            </button>
           )}
         </div>
 
@@ -355,7 +284,7 @@ ${runs.map((run, i) => `${i + 1}. ${run}`).join('\n')}`;
             {cronPresets.map((preset, index) => (
               <button
                 key={index}
-                onClick={() => setCronExpression(preset.expression)}
+                onClick={() => loadPreset(preset.expression)}
                 className={`text-left p-3 rounded-lg border transition-colors ${
                   darkMode 
                     ? 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300' 
@@ -469,7 +398,7 @@ ${runs.map((run, i) => `${i + 1}. ${run}`).join('\n')}`;
 
               <div className="pt-2 border-t border-gray-600">
                 <button
-                  onClick={() => copySpecificItem(`Cron Expression: ${cronExpression}
+                  onClick={() => copySpecificItem(`Cron Expression: ${getCronExpression()}
 Description: ${description}
 Next 5 runs:
 ${nextRuns.map((run, i) => `${i + 1}. ${run}`).join('\n')}`, 'all-analysis')}
