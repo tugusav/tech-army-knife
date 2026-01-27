@@ -27,7 +27,7 @@ function AppContent() {
 
   const tools: Tool[] = [
     { id: 'base64', name: 'Base64 Converter', category: 'encoding', icon: Code2, desc: 'Encode or decode Base64 strings.' },
-    { id: 'url-encoder', name: 'URL Encoder/Decoder', category: 'encoding', icon: Link, desc: 'Encode or decode URL strings.' },
+    { id: 'url-encoder', name: 'URL Encoder', category: 'encoding', icon: Link, desc: 'Encode or decode URL strings.' },
     { id: 'curl', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
     { id: 'compare', name: 'Text Compare', category: 'text', icon: GitCompare, desc: 'Side-by-side git-style diff.' },
     { id: 'json-yaml', name: 'JSON ⟷ YAML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and YAML.' },
@@ -40,7 +40,7 @@ function AppContent() {
     { id: 'jwt', name: 'JWT Tool', category: 'encoding', icon: Key, desc: 'Encode and decode JWT tokens.' },
     { id: 'csv-json', name: 'CSV ⟷ JSON', category: 'conversion', icon: FileText, desc: 'Convert between CSV and JSON.' },
     { id: 'uuid-generator', name: 'UUID Generator', category: 'generator', icon: Hash, desc: 'Generate and validate UUIDs.' },
-    { id: 'timestamp', name: 'Timestamp Converter', category: 'generator', icon: Clock, desc: 'Convert Unix timestamps and dates.' },
+    { id: 'timestamp', name: 'UNIX Timestamp', category: 'generator', icon: Clock, desc: 'Convert Unix timestamps and dates.' },
     { id: 'cron', name: 'Cron Calculator', category: 'generator', icon: Calendar, desc: 'Create and analyze cron expressions.' },
     { id: 'hash-generator', name: 'Hash Generator', category: 'encoding', icon: Hash, desc: 'Generate MD5, SHA1, SHA256, SHA512 hashes.' },
   ];

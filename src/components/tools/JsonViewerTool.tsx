@@ -15,9 +15,17 @@ export function JsonViewerTool({ darkMode, copied, copyToClipboard, setError }: 
   const [output, setOutput] = useState('');
   const [viewMode, setViewMode] = useState<'tree' | 'formatted' | 'minified'>('formatted');
   const [parsedData, setParsedData] = useState<any>(null);
+  const [hasProcessed, setHasProcessed] = useState(false);
   const { addToHistory } = useHistory();
 
   const inputClass = darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900';
+
+  // Clear output when view mode changes
+  const handleViewModeChange = (newMode: 'tree' | 'formatted' | 'minified') => {
+    setViewMode(newMode);
+    setOutput('');
+    setHasProcessed(false);
+  };
 
   const processJson = () => {
     setError('');
@@ -44,10 +52,13 @@ export function JsonViewerTool({ darkMode, copied, copyToClipboard, setError }: 
       }
 
       setOutput(result);
+      setHasProcessed(true);
       addToHistory(result, `JSON Viewer (${viewMode})`);
     } catch (error) {
       setError(`Invalid JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setParsedData(null);
+      setOutput('');
+      setHasProcessed(false);
     }
   };
 
@@ -122,11 +133,11 @@ export function JsonViewerTool({ darkMode, copied, copyToClipboard, setError }: 
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className={`w-full h-80 border rounded-lg p-3 font-mono text-sm resize-none ${inputClass}`}
+          className={`w-full h-96 border rounded-lg p-3 font-mono text-sm resize-none ${inputClass}`}
           placeholder="Paste your JSON here..."
         />
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap justify-center">
           {[
             { id: 'formatted', label: 'Formatted' },
             { id: 'minified', label: 'Minified' },
@@ -134,7 +145,7 @@ export function JsonViewerTool({ darkMode, copied, copyToClipboard, setError }: 
           ].map((mode) => (
             <button
               key={mode.id}
-              onClick={() => setViewMode(mode.id as any)}
+              onClick={() => handleViewModeChange(mode.id as any)}
               className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
                 viewMode === mode.id
                   ? 'bg-blue-600 text-white'
@@ -178,20 +189,20 @@ export function JsonViewerTool({ darkMode, copied, copyToClipboard, setError }: 
           )}
         </div>
 
-        <div className={`w-full h-80 border rounded-lg overflow-auto ${
+        <div className={`w-full h-96 border rounded-lg overflow-auto ${
           darkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-300'
         }`}>
-          {viewMode === 'tree' && parsedData ? (
+          {viewMode === 'tree' && parsedData && hasProcessed ? (
             <div className="p-3">
               <TreeView data={parsedData} darkMode={darkMode} />
             </div>
-          ) : output ? (
+          ) : output && hasProcessed ? (
             <pre className={`p-3 whitespace-pre-wrap ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               {output}
             </pre>
           ) : (
             <div className={`text-center text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-32`}>
-              Processed JSON will appear here
+              {hasProcessed ? 'No output to display' : `Select ${viewMode} mode and click "View JSON" to see the result`}
             </div>
           )}
         </div>
