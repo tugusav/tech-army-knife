@@ -46,11 +46,16 @@ export function HistoryProvider({ children }: HistoryProviderProps) {
   }, [history]);
 
   const addToHistory = (value: string, toolName: string) => {
+    // Truncate very long values to keep storage manageable
+    const truncatedValue = value.length > 1000 
+      ? value.substring(0, 1000) + '...[truncated]'
+      : value;
+    
     const newItem: HistoryItem = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       timestamp: Date.now(),
       toolName,
-      value,
+      value: truncatedValue,
     };
     setHistory((prev) => [newItem, ...prev].slice(0, 50)); // Keep last 50 items
   };

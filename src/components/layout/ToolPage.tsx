@@ -6,9 +6,7 @@ import { UrlEncoderTool } from '../tools/UrlEncoderTool';
 import { CurlTool } from '../tools/CurlTool';
 import { CompareTool } from '../tools/CompareTool';
 import { JsonYamlTool } from '../tools/JsonYamlTool';
-import { JsonFormatterTool } from '../tools/JsonFormatterTool';
 import { JsonViewerTool } from '../tools/JsonViewerTool';
-import { YamlFormatterTool } from '../tools/YamlFormatterTool';
 import { YamlViewerTool } from '../tools/YamlViewerTool';
 import { XmlViewerTool } from '../tools/XmlViewerTool';
 import { SqlFormatterTool } from '../tools/SqlFormatterTool';
@@ -58,9 +56,7 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
         {activeView === 'curl' && <CurlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'compare' && <CompareTool darkMode={darkMode} setError={setError} />}
         {activeView === 'json-yaml' && <JsonYamlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
-        {activeView === 'json-format' && <JsonFormatterTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'json-viewer' && <JsonViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
-        {activeView === 'yaml-format' && <YamlFormatterTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'yaml-viewer' && <YamlViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'xml-viewer' && <XmlViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'sql-format' && <SqlFormatterTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}

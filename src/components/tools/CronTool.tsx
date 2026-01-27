@@ -28,14 +28,33 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
 
   // Handle input change with auto-formatting
   const handleCronInputChange = (value: string) => {
-    // Allow user to type freely, but provide gentle formatting
+    // Auto-format as user types for common patterns
     let formatted = value;
     
-    // If user is typing and we detect a pattern without spaces, help format it
+    // If user types without spaces and we can detect a pattern, auto-format
     if (!value.includes(' ') && value.length >= 5) {
-      // Don't auto-format while user is still typing, just when they pause
-      // This prevents interrupting their input flow
-      formatted = value;
+      // Try to auto-format common patterns
+      if (value.match(/^\d+\*{4}$/)) {
+        // Pattern like "0****" -> "0 0 * * *"
+        const firstChar = value[0];
+        formatted = `${firstChar} ${firstChar === '0' ? '0' : firstChar} * * *`;
+      } else if (value.match(/^\*\/\d+\*{4}$/)) {
+        // Pattern like "*/5****" -> "*/5 * * * *"
+        const interval = value.match(/\d+/)?.[0] || '5';
+        formatted = `*/${interval} * * * *`;
+      } else if (value.match(/^\d{2}\*{3}$/)) {
+        // Pattern like "00***" -> "0 0 * * *"
+        const hour = value.substring(0, 2);
+        formatted = `0 ${parseInt(hour)} * * *`;
+      } else if (value.match(/^\d{1,2}\d{2}\*{2}$/)) {
+        // Pattern like "0900**" -> "0 9 * * *"
+        const timeStr = value.replace(/\*{2}$/, '');
+        if (timeStr.length === 4) {
+          const hour = parseInt(timeStr.substring(0, 2));
+          const minute = parseInt(timeStr.substring(2, 4));
+          formatted = `${minute} ${hour} * * *`;
+        }
+      }
     }
     
     setCronExpression(formatted);
