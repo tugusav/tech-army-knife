@@ -18,6 +18,7 @@ import { UuidGeneratorTool } from '../tools/UuidGeneratorTool';
 import { TimestampTool } from '../tools/TimestampTool';
 import { CronTool } from '../tools/CronTool';
 import { HashGeneratorTool } from '../tools/HashGeneratorTool';
+import { K6LoadTestTool } from '../tools/K6LoadTestTool';
 
 interface ToolPageProps {
   activeView: string;
@@ -68,6 +69,7 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
         {activeView === 'timestamp' && <TimestampTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'cron' && <CronTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'hash-generator' && <HashGeneratorTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
+        {activeView === 'k6-load-test' && <K6LoadTestTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
       </div>
     </div>
   );

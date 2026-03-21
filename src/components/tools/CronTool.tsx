@@ -96,15 +96,14 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     }
     
     // Time
-    if (hour !== '*' && minute !== '*') {
-      const h = parseInt(hour);
-      const m = parseInt(minute);
+    const isPlainNumber = (f: string) => /^\d+$/.test(f);
+    if (isPlainNumber(hour) && isPlainNumber(minute)) {
       const time = new Date();
-      time.setHours(h, m, 0, 0);
+      time.setHours(parseInt(hour), parseInt(minute), 0, 0);
       desc += ` at ${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (hour !== '*') {
+    } else if (isPlainNumber(hour)) {
       desc += ` at hour ${hour}`;
-    } else if (minute !== '*') {
+    } else if (isPlainNumber(minute)) {
       desc += ` at minute ${minute}`;
     }
     
@@ -130,16 +129,12 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     let current = new Date(now);
     current.setSeconds(0, 0);
 
-    for (let i = 0; i < count && runs.length < count; i++) {
+    for (let i = 0; i < 10000 && runs.length < count; i++) {
       current = new Date(current.getTime() + 60000); // Add 1 minute
-      
+
       if (matchesCron(current, minute, hour, day, month, weekday)) {
         runs.push(current.toLocaleString());
-        current = new Date(current.getTime() + 60000); // Skip to next minute
       }
-      
-      // Prevent infinite loop
-      if (i > 10000) break;
     }
     
     return runs;

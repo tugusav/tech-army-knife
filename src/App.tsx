@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
+import {
   Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History,
-  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX
+  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { HistoryProvider } from './contexts/HistoryContext';
@@ -43,6 +43,7 @@ function AppContent() {
     { id: 'timestamp', name: 'UNIX Timestamp', category: 'generator', icon: Clock, desc: 'Convert Unix timestamps and dates.' },
     { id: 'cron', name: 'Cron Calculator', category: 'generator', icon: Calendar, desc: 'Create and analyze cron expressions.' },
     { id: 'hash-generator', name: 'Hash Generator', category: 'encoding', icon: Hash, desc: 'Generate MD5, SHA1, SHA256, SHA512 hashes.' },
+    { id: 'k6-load-test', name: 'k6 Load Test Generator', category: 'api', icon: Gauge, desc: 'Generate k6 load test scripts from cURL commands.' },
   ];
 
   const categories = [

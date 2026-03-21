@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { OutputBox } from '../common/OutputBox';
 import { useHistory } from '../../contexts/HistoryContext';
 
@@ -146,6 +146,7 @@ export function CurlTool({ darkMode, copied, copyToClipboard, setError }: CurlTo
       const parsedHeaders: Header[] = [];
       let body = '';
       let i = 0;
+      setCurlFlags({ verbose: false, includeHeaders: false, insecure: false });
       
       // Skip 'curl' if present
       if (tokens[0] === 'curl') {
@@ -155,7 +156,22 @@ export function CurlTool({ darkMode, copied, copyToClipboard, setError }: CurlTo
       while (i < tokens.length) {
         const token = tokens[i];
         
-        if (token === '-X' || token === '--request') {
+        if (token === '-v' || token === '--verbose' ||
+            token === '-i' || token === '--include' ||
+            token === '-k' || token === '--insecure' ||
+            token === '-s' || token === '--silent' ||
+            token === '-L' || token === '--location' ||
+            /^-[viksSL]+$/.test(token)) {
+          // Boolean flags — detect and reflect in settings
+          const f = token.replace(/^-+/, '');
+          setCurlFlags(prev => ({
+            ...prev,
+            verbose: prev.verbose || f.includes('v') || token === '--verbose',
+            includeHeaders: prev.includeHeaders || f.includes('i') || token === '--include',
+            insecure: prev.insecure || f.includes('k') || token === '--insecure',
+          }));
+          i++;
+        } else if (token === '-X' || token === '--request') {
           if (i + 1 < tokens.length) {
             method = tokens[i + 1];
             i += 2;
