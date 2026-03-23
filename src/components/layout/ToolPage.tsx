@@ -50,8 +50,8 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
       <div className="tool-page-card">
         {activeView === 'base64' && <Base64Tool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'url-encoder' && <UrlEncoderTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
-        {activeView === 'curl' && <CurlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
-        {activeView === 'compare' && <CompareTool darkMode={darkMode} setError={setError} />}
+        {activeView === 'curl-generator' && <CurlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
+        {activeView === 'json-diff' && <CompareTool darkMode={darkMode} setError={setError} />}
         {activeView === 'json-yaml' && <JsonYamlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'json-viewer' && <JsonViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'yaml-viewer' && <YamlViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}

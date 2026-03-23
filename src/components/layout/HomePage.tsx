@@ -13,7 +13,7 @@ export function HomePage({ tools, setActiveView }: HomePageProps) {
     <div className="home-page">
       <div className="home-hero">
         <h1 className="home-title">Your Tech Swiss-Army Knife</h1>
-        <p className="home-subtitle">Developer tools to help you work faster — encode, decode, compare, format, and generate.</p>
+        <p className="home-subtitle">Developer tools to help you work faster. <br />Encode, decode, compare, format, and generate. <br />No server-side processing = No data leaves your browser.</p>
       </div>
 
       <div className="home-stats">

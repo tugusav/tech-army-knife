@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History,
   Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge
@@ -13,11 +13,30 @@ import { Tool } from './types';
 
 function AppContent() {
   const { darkMode, toggleDarkMode } = useTheme();
-  const [activeView, setActiveView] = useState('home');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // History-based routing
+  const getViewFromPath = () => {
+    const path = window.location.pathname.replace(/^\//, '');
+    return path || 'home';
+  };
+
+  const [activeView, setActiveViewState] = useState(getViewFromPath);
+
+  const setActiveView = useCallback((view: string) => {
+    setActiveViewState(view);
+    const url = view === 'home' ? '/' : `/${view}`;
+    window.history.pushState(null, '', url);
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => setActiveViewState(getViewFromPath());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -28,8 +47,8 @@ function AppContent() {
   const tools: Tool[] = [
     { id: 'base64', name: 'Base64 Converter', category: 'encoding', icon: Code2, desc: 'Encode or decode Base64 strings.' },
     { id: 'url-encoder', name: 'URL Encoder', category: 'encoding', icon: Link, desc: 'Encode or decode URL strings.' },
-    { id: 'curl', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
-    { id: 'compare', name: 'JSON Diff', category: 'formatting', icon: GitCompare, desc: 'Git-style side-by-side JSON payload diff with smart comparison options.' },
+    { id: 'curl-generator', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
+    { id: 'json-diff', name: 'JSON Diff', category: 'formatting', icon: GitCompare, desc: 'Git-style side-by-side JSON payload diff with smart comparison options.' },
     { id: 'json-yaml', name: 'JSON ⟷ YAML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and YAML.' },
     { id: 'json-xml', name: 'JSON ⟷ XML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and XML.' },
     { id: 'json-viewer', name: 'JSON Viewer', category: 'formatting', icon: Braces, desc: 'Format, beautify and view JSON data.' },
