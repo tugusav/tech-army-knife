@@ -29,7 +29,7 @@ function AppContent() {
     { id: 'base64', name: 'Base64 Converter', category: 'encoding', icon: Code2, desc: 'Encode or decode Base64 strings.' },
     { id: 'url-encoder', name: 'URL Encoder', category: 'encoding', icon: Link, desc: 'Encode or decode URL strings.' },
     { id: 'curl', name: 'cURL Generator', category: 'api', icon: Terminal, desc: 'Generate cURL commands.' },
-    { id: 'compare', name: 'Text Compare', category: 'text', icon: GitCompare, desc: 'Side-by-side git-style diff.' },
+    { id: 'compare', name: 'JSON Diff', category: 'formatting', icon: GitCompare, desc: 'Git-style side-by-side JSON payload diff with smart comparison options.' },
     { id: 'json-yaml', name: 'JSON ⟷ YAML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and YAML.' },
     { id: 'json-xml', name: 'JSON ⟷ XML', category: 'conversion', icon: Shuffle, desc: 'Convert between JSON and XML.' },
     { id: 'json-viewer', name: 'JSON Viewer', category: 'formatting', icon: Braces, desc: 'Format, beautify and view JSON data.' },
@@ -52,39 +52,31 @@ function AppContent() {
     { name: 'ENCODING & CONVERSION', items: tools.filter((t) => ['encoding', 'conversion'].includes(t.category)) },
     { name: 'GENERATORS & UTILITIES', items: tools.filter((t) => t.category === 'generator') },
     { name: 'TEXT & CONTENT', items: tools.filter((t) => t.category === 'text') },
-
   ];
 
-  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
-
   return (
-    <div className={`flex h-screen ${bgClass} relative overflow-hidden`}>
-      <HistorySidebar 
-        isOpen={historyOpen} 
-        onClose={() => setHistoryOpen(false)} 
+    <div className={`app-shell ${darkMode ? '' : 'theme-light'}`}>
+      <HistorySidebar
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
         darkMode={darkMode}
         copyToClipboard={copyToClipboard}
       />
 
-      {/* Detail: Floating History Toggle Button */}
+      {/* History Toggle */}
       <button
         onClick={() => setHistoryOpen(!historyOpen)}
-        className={`fixed top-4 right-4 z-[40] p-2 rounded-lg shadow-lg transition-colors ${
-          darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-50'
-        }`}
+        className="history-toggle"
         title="Toggle History"
       >
-        <History size={20} />
+        <History size={18} />
       </button>
 
       {/* Desktop Sidebar */}
       <div className="hidden md:flex">
         <Sidebar
           activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            setError('');
-          }}
+          setActiveView={(view) => { setActiveView(view); setError(''); }}
           categories={categories}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
@@ -92,55 +84,25 @@ function AppContent() {
       </div>
 
       {/* Mobile Top Bar */}
-      <div
-        className={`md:hidden fixed top-0 left-0 right-0 h-12 flex items-center px-4 shadow z-[30] ${
-          darkMode ? 'bg-gray-900' : 'bg-gray-50'
-        }`}
-      >
-        {/* Hamburger */}
+      <div className="md:hidden mobile-topbar">
         {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className={`p-2 rounded-lg ${
-              darkMode ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-50 text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            ☰
+          <button onClick={() => setSidebarOpen(true)} className="mobile-hamburger">
+            &#9776;
           </button>
         )}
-
-          {/* Title */}
-          <h1
-            className={`absolute left-1/2 transform -translate-x-1/2 text-lg font-bold ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            TechArmyKnife
-          </h1>
-        </div>
+        <span className="mobile-topbar-title">TechArmyKnife</span>
+      </div>
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[95] md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="md:hidden mobile-overlay" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Mobile Drawer */}
-      <div
-        className={`fixed top-0 left-0 w-56 max-w-[14rem] h-screen
-          bg-white dark:bg-gray-800 shadow-xl transform ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } transition-transform duration-300 z-[100] md:hidden flex flex-col`}
-      >
+      <div className={`md:hidden mobile-drawer ${sidebarOpen ? 'open' : ''}`}>
         <Sidebar
           activeView={activeView}
-          setActiveView={(view) => {
-            setActiveView(view);
-            setSidebarOpen(false);
-            setError('');
-          }}
+          setActiveView={(view) => { setActiveView(view); setSidebarOpen(false); setError(''); }}
           categories={categories}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
@@ -148,7 +110,7 @@ function AppContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto md:pt-0 pt-12">
+      <div className="main-content md:pt-0 pt-12">
         {activeView === 'home' ? (
           <HomePage tools={tools} setActiveView={setActiveView} darkMode={darkMode} />
         ) : (

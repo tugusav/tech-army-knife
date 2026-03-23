@@ -31,27 +31,23 @@ interface ToolPageProps {
 }
 
 export function ToolPage({ activeView, tools, error, setError, copied, copyToClipboard, darkMode }: ToolPageProps) {
-  const textClass = darkMode ? 'text-white' : 'text-gray-900';
-  const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
-  const cardClass = darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-
   const activeTool = tools.find((t) => t.id === activeView);
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <div className="mb-8">
-        <h1 className={`text-3xl font-bold ${textClass} mb-2`}>{activeTool?.name}</h1>
-        <p className={mutedClass}>{activeTool?.desc}</p>
+    <div className="tool-page">
+      <div className="tool-page-header">
+        <h1 className="tool-page-title">{activeTool?.name}</h1>
+        <p className="tool-page-desc">{activeTool?.desc}</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-          <AlertCircle size={20} />
+        <div className="tool-page-error">
+          <AlertCircle size={18} />
           <span>{error}</span>
         </div>
       )}
 
-      <div className={`${cardClass} rounded-xl border p-6`}>
+      <div className="tool-page-card">
         {activeView === 'base64' && <Base64Tool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'url-encoder' && <UrlEncoderTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'curl' && <CurlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}

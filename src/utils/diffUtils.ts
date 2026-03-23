@@ -1,67 +1,201 @@
-import { diffLines, diffWords } from 'diff';
 import { DiffRow } from '../types';
 
-export function buildSideBySide(oldText: string, newText: string): DiffRow[] {
-  const parts = diffLines(oldText, newText);
-  const rows: DiffRow[] = [];
-  let leftQueue: Array<{ text: string }> = [];
-  let rightQueue: Array<{ text: string }> = [];
+// ──── LCS-based line diff ────
+function lcsLines(a: string[], b: string[]): Array<{ type: 'equal' | 'del' | 'add'; left?: number; right?: number }> {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
 
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    const lines = part.value.split('\n');
-    if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  const result: Array<{ type: 'equal' | 'del' | 'add'; left?: number; right?: number }> = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) { result.push({ type: 'equal', left: i - 1, right: j - 1 }); i--; j--; }
+    else if (dp[i - 1][j] >= dp[i][j - 1]) { result.push({ type: 'del', left: i - 1 }); i--; }
+    else { result.push({ type: 'add', right: j - 1 }); j--; }
+  }
+  while (i > 0) { result.push({ type: 'del', left: i - 1 }); i--; }
+  while (j > 0) { result.push({ type: 'add', right: j - 1 }); j--; }
+  return result.reverse();
+}
 
-    if (part.added) {
-      lines.forEach((ln) => rightQueue.push({ text: ln }));
-    } else if (part.removed) {
-      lines.forEach((ln) => leftQueue.push({ text: ln }));
+// ──── Word-level inline diff ────
+export function inlineDiff(oldStr: string, newStr: string): { leftHtml: string; rightHtml: string } {
+  const oldWords = oldStr.split(/(\s+)/);
+  const newWords = newStr.split(/(\s+)/);
+  const m = oldWords.length, n = newWords.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = oldWords[i - 1] === newWords[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+  const ops: Array<{ t: 'eq' | 'del' | 'add'; oi?: number; ni?: number }> = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (oldWords[i - 1] === newWords[j - 1]) { ops.push({ t: 'eq', oi: i - 1, ni: j - 1 }); i--; j--; }
+    else if (dp[i - 1][j] >= dp[i][j - 1]) { ops.push({ t: 'del', oi: i - 1 }); i--; }
+    else { ops.push({ t: 'add', ni: j - 1 }); j--; }
+  }
+  while (i > 0) { ops.push({ t: 'del', oi: i - 1 }); i--; }
+  while (j > 0) { ops.push({ t: 'add', ni: j - 1 }); j--; }
+  ops.reverse();
+
+  let leftHtml = '', rightHtml = '';
+  for (const op of ops) {
+    if (op.t === 'eq') {
+      const esc = escHtml(oldWords[op.oi!]);
+      leftHtml += esc;
+      rightHtml += esc;
+    } else if (op.t === 'del') {
+      leftHtml += `<span class="hl-del">${escHtml(oldWords[op.oi!])}</span>`;
     } else {
-      const maxQ = Math.max(leftQueue.length, rightQueue.length);
-      for (let k = 0; k < maxQ; k++) {
-        const l = leftQueue[k] ? leftQueue[k].text : '';
-        const r = rightQueue[k] ? rightQueue[k].text : '';
-        rows.push(makeRow(l, r));
-      }
-      leftQueue = [];
-      rightQueue = [];
-      lines.forEach((ln) => rows.push(makeRow(ln, ln, 'equal')));
+      rightHtml += `<span class="hl-add">${escHtml(newWords[op.ni!])}</span>`;
     }
   }
+  return { leftHtml, rightHtml };
+}
 
-  const maxQ = Math.max(leftQueue.length, rightQueue.length);
-  for (let k = 0; k < maxQ; k++) {
-    const l = leftQueue[k] ? leftQueue[k].text : '';
-    const r = rightQueue[k] ? rightQueue[k].text : '';
-    rows.push(makeRow(l, r));
+export function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ──── Build side-by-side diff rows ────
+export interface JsonDiffRow {
+  type: 'equal' | 'add' | 'del' | 'mod';
+  left?: string;
+  right?: string;
+  ln1?: number;
+  ln2?: number;
+  leftHtml?: string;
+  rightHtml?: string;
+}
+
+export function buildJsonDiffRows(linesA: string[], linesB: string[]): JsonDiffRow[] {
+  const ops = lcsLines(linesA, linesB);
+  const rows: JsonDiffRow[] = [];
+
+  let i = 0;
+  while (i < ops.length) {
+    if (ops[i].type === 'equal') {
+      rows.push({
+        type: 'equal',
+        left: linesA[ops[i].left!],
+        right: linesB[ops[i].right!],
+        ln1: ops[i].left! + 1,
+        ln2: ops[i].right! + 1,
+      });
+      i++;
+    } else {
+      const dels: number[] = [], adds: number[] = [];
+      while (i < ops.length && ops[i].type !== 'equal') {
+        if (ops[i].type === 'del') dels.push(ops[i].left!);
+        else adds.push(ops[i].right!);
+        i++;
+      }
+      const pairs = Math.min(dels.length, adds.length);
+      for (let p = 0; p < pairs; p++) {
+        const { leftHtml, rightHtml } = inlineDiff(linesA[dels[p]], linesB[adds[p]]);
+        rows.push({
+          type: 'mod',
+          left: linesA[dels[p]],
+          right: linesB[adds[p]],
+          ln1: dels[p] + 1,
+          ln2: adds[p] + 1,
+          leftHtml,
+          rightHtml,
+        });
+      }
+      for (let p = pairs; p < dels.length; p++) {
+        rows.push({ type: 'del', left: linesA[dels[p]], ln1: dels[p] + 1 });
+      }
+      for (let p = pairs; p < adds.length; p++) {
+        rows.push({ type: 'add', right: linesB[adds[p]], ln2: adds[p] + 1 });
+      }
+    }
   }
-
   return rows;
 }
 
-function makeRow(left: string, right: string, forcedType: 'equal' | null = null): DiffRow {
-  if (forcedType === 'equal' || left === right) {
-    return { type: 'equal', left, right, leftTokens: null, rightTokens: null };
+// ──── JSON preprocessing utilities ────
+export interface IgnoreRule {
+  scope: string | null;
+  key: string;
+}
+
+export function parseIgnoreRule(rule: string): IgnoreRule {
+  const dot = rule.lastIndexOf('.');
+  if (dot === -1) return { scope: null, key: rule };
+  return { scope: rule.substring(0, dot), key: rule.substring(dot + 1) };
+}
+
+export function deepRemoveKeys(val: any, rules: string[], currentPath: string): any {
+  if (val === null || typeof val !== 'object') return val;
+
+  if (Array.isArray(val)) {
+    return val.map(v => deepRemoveKeys(v, rules, currentPath + '.[]'));
   }
-  if (left && !right) {
-    return { type: 'delete', left, right: '', leftTokens: null, rightTokens: null };
-  }
-  if (!left && right) {
-    return { type: 'add', left: '', right, leftTokens: null, rightTokens: null };
-  }
-  
-  const wordDiff = diffWords(left, right);
-  const leftTokens: Array<{ text: string; removed?: boolean }> = [];
-  const rightTokens: Array<{ text: string; added?: boolean }> = [];
-  
-  wordDiff.forEach((p) => {
-    if (p.added) rightTokens.push({ text: p.value, added: true });
-    else if (p.removed) leftTokens.push({ text: p.value, removed: true });
-    else {
-      leftTokens.push({ text: p.value });
-      rightTokens.push({ text: p.value });
+
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(val)) {
+    const childPath = currentPath ? currentPath + '.' + k : k;
+    let shouldIgnore = false;
+    for (const rule of rules) {
+      const { scope, key } = parseIgnoreRule(rule);
+      if (key !== k) continue;
+      if (scope === null) { shouldIgnore = true; break; }
+      const normalizedCurrent = currentPath.replace(/\.\[\]/g, '');
+      if (normalizedCurrent === scope || currentPath === scope ||
+          normalizedCurrent.endsWith('.' + scope) || currentPath.endsWith('.' + scope)) {
+        shouldIgnore = true; break;
+      }
+      const scopeParts = scope.split('.');
+      const pathSegments = currentPath.replace(/\.\[\]/g, '').split('.').filter(Boolean);
+      if (scopeParts.length === 1) {
+        if (pathSegments.includes(scopeParts[0])) { shouldIgnore = true; break; }
+      } else {
+        const scopeStr = scopeParts.join('.');
+        const pathStr = pathSegments.join('.');
+        if (pathStr === scopeStr || pathStr.endsWith('.' + scopeStr)) { shouldIgnore = true; break; }
+      }
     }
-  });
-  
-  return { type: 'modify', left, right, leftTokens, rightTokens };
+    if (shouldIgnore) continue;
+    out[k] = deepRemoveKeys(v, rules, childPath);
+  }
+  return out;
+}
+
+export function deepSortValue(val: any, sortKey: string | null): any {
+  if (val === null || typeof val !== 'object') return val;
+  if (Array.isArray(val)) {
+    const sorted = val.map(v => deepSortValue(v, sortKey));
+    sorted.sort((a, b) => {
+      if (sortKey && typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
+        const ka = String(a[sortKey] || '');
+        const kb = String(b[sortKey] || '');
+        if (ka !== kb) return ka.localeCompare(kb);
+      }
+      return JSON.stringify(a).localeCompare(JSON.stringify(b));
+    });
+    return sorted;
+  }
+  const sortedObj: Record<string, any> = {};
+  for (const k of Object.keys(val).sort()) {
+    sortedObj[k] = deepSortValue(val[k], sortKey);
+  }
+  return sortedObj;
+}
+
+// Legacy export for backward compat
+export function buildSideBySide(oldText: string, newText: string): DiffRow[] {
+  const linesA = oldText.split('\n');
+  const linesB = newText.split('\n');
+  const jsonRows = buildJsonDiffRows(linesA, linesB);
+  return jsonRows.map(r => ({
+    type: r.type === 'del' ? 'delete' as const : r.type === 'mod' ? 'modify' as const : r.type as 'equal' | 'add',
+    left: r.left || '',
+    right: r.right || '',
+    leftTokens: null,
+    rightTokens: null,
+  }));
 }

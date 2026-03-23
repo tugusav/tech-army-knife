@@ -11,50 +11,45 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeView, setActiveView, categories, darkMode, toggleDarkMode }: SidebarProps) {
-  const cardClass = darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-  const textClass = darkMode ? 'text-white' : 'text-gray-900';
-  const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
-  const hoverClass = darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50';
-  const activeClass = darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900';
-
   return (
-    <div className={`w-56 h-full ${cardClass} border-r flex flex-col`}>
-      <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex justify-between items-center`}>
-        <h1 className={`text-xl font-bold ${textClass}`}>TechArmyKnife</h1>
-        <button onClick={toggleDarkMode} className={`p-2 rounded-lg ${hoverClass}`}>
-          {darkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-gray-600" />}
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-brand">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+          </svg>
+          TechArmyKnife
+        </div>
+        <button onClick={toggleDarkMode} className="theme-toggle" title={darkMode ? 'Light mode' : 'Dark mode'}>
+          {darkMode ? <Sun size={16} /> : <Moon size={16} />}
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3">
-        <div className="mb-6">
-          <div className={`text-xs font-semibold ${mutedClass} mb-2 px-3`}>HOME</div>
+      <nav className="sidebar-nav">
+        <div className="sidebar-category">
+          <div className="sidebar-category-label">Navigation</div>
           <button
             onClick={() => setActiveView('home')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              activeView === 'home' ? activeClass : `${mutedClass} ${hoverClass}`
-            }`}
+            className={`sidebar-item ${activeView === 'home' ? 'active' : ''}`}
           >
-            <Home size={18} />
-            <span className="text-sm">Home</span>
+            <Home size={16} />
+            <span>Home</span>
           </button>
         </div>
 
         {categories.map((category) => (
-          <div key={category.name} className="mb-6">
-            <div className={`text-xs font-semibold ${mutedClass} mb-2 px-3`}>{category.name}</div>
+          <div key={category.name} className="sidebar-category">
+            <div className="sidebar-category-label">{category.name}</div>
             {category.items.map((tool) => {
               const Icon = tool.icon;
               return (
                 <button
                   key={tool.id}
                   onClick={() => setActiveView(tool.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    activeView === tool.id ? activeClass : `${mutedClass} ${hoverClass}`
-                  }`}
+                  className={`sidebar-item ${activeView === tool.id ? 'active' : ''}`}
                 >
-                  <Icon size={18} />
-                  <span className="text-sm">{tool.name}</span>
+                  <Icon size={16} />
+                  <span>{tool.name}</span>
                 </button>
               );
             })}
