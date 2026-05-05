@@ -57,58 +57,7 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     { label: 'Every 6 hours', expression: '0 */6 * * *', desc: 'Runs every 6 hours' }
   ];
 
-  const parseCronExpression = (cron: string): string => {
-    const parts = cron.trim().split(/\s+/);
-    if (parts.length !== 5) {
-      return 'Invalid cron expression (must have 5 parts)';
-    }
-
-    const [minute, hour, day, month, weekday] = parts;
-    
-    let desc = 'Runs ';
-    
-    // Frequency
-    if (minute === '*' && hour === '*' && day === '*' && month === '*' && weekday === '*') {
-      desc += 'every minute';
-    } else if (minute.startsWith('*/') && hour === '*' && day === '*' && month === '*' && weekday === '*') {
-      desc += `every ${minute.slice(2)} minutes`;
-    } else if (hour.startsWith('*/') && day === '*' && month === '*' && weekday === '*') {
-      desc += `every ${hour.slice(2)} hours`;
-    } else if (day === '*' && month === '*' && weekday === '*') {
-      desc += 'daily';
-    } else if (month === '*' && weekday !== '*') {
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      if (weekday.includes('-')) {
-        const [start, end] = weekday.split('-').map(Number);
-        desc += `weekly on ${days[start]} through ${days[end]}`;
-      } else if (weekday.includes(',')) {
-        const dayList = weekday.split(',').map(d => days[parseInt(d)]).join(', ');
-        desc += `weekly on ${dayList}`;
-      } else {
-        desc += `weekly on ${days[parseInt(weekday)]}`;
-      }
-    } else if (day !== '*' && month === '*') {
-      desc += `monthly on the ${day}${getOrdinalSuffix(parseInt(day))}`;
-    } else if (month !== '*') {
-      const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                     'July', 'August', 'September', 'October', 'November', 'December'];
-      desc += `yearly in ${months[parseInt(month) - 1]}`;
-    }
-    
-    // Time
-    const isPlainNumber = (f: string) => /^\d+$/.test(f);
-    if (isPlainNumber(hour) && isPlainNumber(minute)) {
-      const time = new Date();
-      time.setHours(parseInt(hour), parseInt(minute), 0, 0);
-      desc += ` at ${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (isPlainNumber(hour)) {
-      desc += ` at hour ${hour}`;
-    } else if (isPlainNumber(minute)) {
-      desc += ` at minute ${minute}`;
-    }
-    
-    return desc;
-  };
+  const isPlainNumber = (f: string) => /^\d+$/.test(f);
 
   const getOrdinalSuffix = (num: number): string => {
     const j = num % 10;
@@ -119,62 +68,189 @@ export function CronTool({ darkMode, copied, copyToClipboard, setError }: CronTo
     return 'th';
   };
 
+  const formatTime = (hour: string, minute: string): string => {
+    const formatHHMM = (h: number, m: number) => {
+      const time = new Date();
+      time.setHours(h, m, 0, 0);
+      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    if (isPlainNumber(hour) && isPlainNumber(minute)) {
+      return ` at ${formatHHMM(parseInt(hour), parseInt(minute))}`;
+    }
+    if (isPlainNumber(minute) && hour.includes(',')) {
+      const m = parseInt(minute);
+      const list = hour.split(',').filter(isPlainNumber).map(h => formatHHMM(parseInt(h), m));
+      if (list.length === 2) return ` at ${list[0]} and ${list[1]}`;
+      if (list.length > 2) return ` at ${list.slice(0, -1).join(', ')}, and ${list[list.length - 1]}`;
+    }
+    if (isPlainNumber(minute) && hour.includes('-') && !hour.includes('/')) {
+      const [start, end] = hour.split('-').map(Number);
+      const m = parseInt(minute);
+      return ` every hour from ${formatHHMM(start, m)} to ${formatHHMM(end, m)}`;
+    }
+    if (isPlainNumber(hour)) return ` at hour ${hour}`;
+    if (isPlainNumber(minute)) return ` at minute ${minute}`;
+    return '';
+  };
+
+  const parseCronExpression = (cron: string): string => {
+    const parts = cron.trim().split(/\s+/);
+    if (parts.length !== 5) {
+      return 'Invalid cron expression (must have 5 parts)';
+    }
+
+    const [minute, hour, day, month, weekday] = parts;
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December'];
+
+    let freq = '';
+    let appendTime = true;
+
+    if (minute === '*' && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+      freq = 'every minute';
+      appendTime = false;
+    } else if (/^\*\/\d+$/.test(minute) && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+      freq = `every ${minute.slice(2)} minutes`;
+      appendTime = false;
+    } else if (/^\*\/\d+$/.test(hour) && day === '*' && month === '*' && weekday === '*') {
+      freq = `every ${hour.slice(2)} hours`;
+      if (isPlainNumber(minute) && parseInt(minute) !== 0) {
+        freq += ` at minute ${minute}`;
+      }
+      appendTime = false;
+    } else if (hour === '*' && day === '*' && month === '*' && weekday === '*') {
+      freq = isPlainNumber(minute) ? `every hour at minute ${minute}` : 'every hour';
+      appendTime = false;
+    } else if (day === '*' && month === '*' && weekday === '*') {
+      freq = 'daily';
+    } else if (month === '*' && weekday !== '*' && day === '*') {
+      if (weekday.includes('-')) {
+        const [start, end] = weekday.split('-').map(Number);
+        freq = `weekly on ${days[start]} through ${days[end]}`;
+      } else if (weekday.includes(',')) {
+        const dayList = weekday.split(',').map(d => days[parseInt(d)]).filter(Boolean).join(', ');
+        freq = `weekly on ${dayList}`;
+      } else if (isPlainNumber(weekday)) {
+        freq = `weekly on ${days[parseInt(weekday)]}`;
+      } else {
+        freq = `on weekdays matching "${weekday}"`;
+      }
+    } else if (day !== '*' && month === '*' && weekday === '*') {
+      freq = isPlainNumber(day)
+        ? `monthly on the ${day}${getOrdinalSuffix(parseInt(day))}`
+        : `on day "${day}" of every month`;
+    } else if (month !== '*') {
+      const monthName = isPlainNumber(month) ? months[parseInt(month) - 1] : month;
+      freq = isPlainNumber(day)
+        ? `yearly on ${monthName} ${day}${getOrdinalSuffix(parseInt(day))}`
+        : `yearly in ${monthName}`;
+    } else {
+      freq = `on schedule "${cron}"`;
+    }
+
+    let desc = `Runs ${freq}`;
+    if (appendTime) desc += formatTime(hour, minute);
+    return desc;
+  };
+
+  const normalizeWeekday = (field: string): string => {
+    if (field === '*') return field;
+    if (/^\d+-7$/.test(field)) {
+      const start = parseInt(field.split('-')[0]);
+      const list: number[] = [];
+      for (let i = start; i <= 6; i++) list.push(i);
+      list.push(0);
+      return list.join(',');
+    }
+    return field.replace(/(?<![\d-])7(?!\d)/g, '0');
+  };
+
+  const matchesField = (value: number, field: string): boolean => {
+    if (field === '*') return true;
+
+    if (field.includes(',')) {
+      return field.split(',').some(item => matchesField(value, item));
+    }
+
+    if (field.includes('/')) {
+      const [rangePart, stepStr] = field.split('/');
+      const stepNum = parseInt(stepStr);
+      if (isNaN(stepNum) || stepNum <= 0) return false;
+
+      let start: number;
+      let end: number;
+      if (rangePart === '*') {
+        start = 0;
+        end = Infinity;
+      } else if (rangePart.includes('-')) {
+        [start, end] = rangePart.split('-').map(Number);
+      } else {
+        start = parseInt(rangePart);
+        end = Infinity;
+      }
+      if (isNaN(start) || (end !== Infinity && isNaN(end))) return false;
+      if (value < start || value > end) return false;
+      return (value - start) % stepNum === 0;
+    }
+
+    if (field.includes('-')) {
+      const [start, end] = field.split('-').map(Number);
+      return value >= start && value <= end;
+    }
+
+    return parseInt(field) === value;
+  };
+
+  // Cron spec: when day-of-month and day-of-week are both restricted,
+  // the schedule fires when EITHER matches (not both).
+  const matchesDayCombo = (date: Date, day: string, weekday: string): boolean => {
+    const d = date.getDate();
+    const w = date.getDay();
+    const wField = normalizeWeekday(weekday);
+
+    if (day === '*' && weekday === '*') return true;
+    if (day === '*') return matchesField(w, wField);
+    if (weekday === '*') return matchesField(d, day);
+    return matchesField(d, day) || matchesField(w, wField);
+  };
+
   const calculateNextRuns = (cron: string, count: number = 5): string[] => {
     const parts = cron.trim().split(/\s+/);
     if (parts.length !== 5) return [];
 
     const [minute, hour, day, month, weekday] = parts;
     const runs: string[] = [];
-    const now = new Date();
-    let current = new Date(now);
+    let current = new Date();
     current.setSeconds(0, 0);
+    current = new Date(current.getTime() + 60000);
 
-    for (let i = 0; i < 10000 && runs.length < count; i++) {
-      current = new Date(current.getTime() + 60000); // Add 1 minute
+    // 10-year horizon so yearly schedules can yield 5 runs; smart skipping keeps this fast.
+    const deadline = current.getTime() + 10 * 366 * 24 * 60 * 60 * 1000;
 
-      if (matchesCron(current, minute, hour, day, month, weekday)) {
-        runs.push(current.toLocaleString());
+    while (current.getTime() < deadline && runs.length < count) {
+      if (!matchesField(current.getMonth() + 1, month)) {
+        current = new Date(current.getFullYear(), current.getMonth() + 1, 1, 0, 0, 0, 0);
+        continue;
       }
+      if (!matchesDayCombo(current, day, weekday)) {
+        current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1, 0, 0, 0, 0);
+        continue;
+      }
+      if (!matchesField(current.getHours(), hour)) {
+        current = new Date(current.getFullYear(), current.getMonth(), current.getDate(), current.getHours() + 1, 0, 0, 0);
+        continue;
+      }
+      if (!matchesField(current.getMinutes(), minute)) {
+        current = new Date(current.getTime() + 60000);
+        continue;
+      }
+      runs.push(current.toLocaleString());
+      current = new Date(current.getTime() + 60000);
     }
-    
+
     return runs;
-  };
-
-  const matchesCron = (date: Date, minute: string, hour: string, day: string, month: string, weekday: string): boolean => {
-    const m = date.getMinutes();
-    const h = date.getHours();
-    const d = date.getDate();
-    const mon = date.getMonth() + 1;
-    const w = date.getDay();
-
-    return matchesField(m, minute) &&
-           matchesField(h, hour) &&
-           matchesField(d, day) &&
-           matchesField(mon, month) &&
-           matchesField(w, weekday);
-  };
-
-  const matchesField = (value: number, field: string): boolean => {
-    if (field === '*') return true;
-    
-    if (field.includes('/')) {
-      const [range, step] = field.split('/');
-      const stepNum = parseInt(step);
-      if (range === '*') {
-        return value % stepNum === 0;
-      }
-    }
-    
-    if (field.includes(',')) {
-      return field.split(',').some(v => parseInt(v) === value);
-    }
-    
-    if (field.includes('-')) {
-      const [start, end] = field.split('-').map(Number);
-      return value >= start && value <= end;
-    }
-    
-    return parseInt(field) === value;
   };
 
   const analyzeCron = () => {
