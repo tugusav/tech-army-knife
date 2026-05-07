@@ -19,6 +19,7 @@ import { TimestampTool } from '../tools/TimestampTool';
 import { CronTool } from '../tools/CronTool';
 import { HashGeneratorTool } from '../tools/HashGeneratorTool';
 import { K6LoadTestTool } from '../tools/K6LoadTestTool';
+import { HtmlViewerTool } from '../tools/HtmlViewerTool';
 
 interface ToolPageProps {
   activeView: string;
@@ -32,9 +33,10 @@ interface ToolPageProps {
 
 export function ToolPage({ activeView, tools, error, setError, copied, copyToClipboard, darkMode }: ToolPageProps) {
   const activeTool = tools.find((t) => t.id === activeView);
+  const isHtmlViewer = activeView === 'html-viewer';
 
   return (
-    <div className="tool-page">
+    <div className={`tool-page ${isHtmlViewer ? 'html-viewer-page' : ''}`}>
       <div className="tool-page-header">
         <h1 className="tool-page-title">{activeTool?.name}</h1>
         <p className="tool-page-desc">{activeTool?.desc}</p>
@@ -66,6 +68,7 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
         {activeView === 'cron' && <CronTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'hash-generator' && <HashGeneratorTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'k6-load-test' && <K6LoadTestTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
+        {activeView === 'html-viewer' && <HtmlViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
       </div>
     </div>
   );

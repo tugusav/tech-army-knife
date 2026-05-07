@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History,
-  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge
+  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge, Monitor
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { HistoryProvider } from './contexts/HistoryContext';
@@ -63,6 +63,7 @@ function AppContent() {
     { id: 'cron', name: 'Cron Calculator', category: 'generator', icon: Calendar, desc: 'Create and analyze cron expressions.' },
     { id: 'hash-generator', name: 'Hash Generator', category: 'encoding', icon: Hash, desc: 'Generate MD5, SHA1, SHA256, SHA512 hashes.' },
     { id: 'k6-load-test', name: 'k6 Generator', category: 'api', icon: Gauge, desc: 'Generate k6 load test scripts from cURL commands.' },
+    { id: 'html-viewer', name: 'HTML Viewer', category: 'viewer', icon: Monitor, desc: 'Edit, preview, format, and minify HTML.' },
   ];
 
   const categories = [
