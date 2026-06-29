@@ -26,7 +26,6 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
   // Options
   const [sortArrays, setSortArrays] = useState(true);
   const [sortKey, setSortKey] = useState('');
-  const [ignoreOrder, setIgnoreOrder] = useState(false);
   const [collapseEqual, setCollapseEqual] = useState(true);
   const [ignoreRules, setIgnoreRules] = useState<string[]>([]);
   const [ignoreInput, setIgnoreInput] = useState('');
@@ -65,41 +64,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
     const json2 = JSON.stringify(obj2, null, 2);
     const lines1 = json1.split('\n');
     const lines2 = json2.split('\n');
-
-    let rows: JsonDiffRow[];
-
-    if (ignoreOrder) {
-      // Hybrid diff: exact matches first, then sort+LCS leftovers
-      const freq1 = new Map<string, number>();
-      const freq2 = new Map<string, number>();
-      for (const l of lines1) freq1.set(l, (freq1.get(l) || 0) + 1);
-      for (const l of lines2) freq2.set(l, (freq2.get(l) || 0) + 1);
-
-      const allLines = [...new Set([...freq1.keys(), ...freq2.keys()])].sort((a, b) => a.localeCompare(b));
-
-      const equalRows: JsonDiffRow[] = [];
-      const leftover1: string[] = [];
-      const leftover2: string[] = [];
-
-      for (const line of allLines) {
-        const c1 = freq1.get(line) || 0;
-        const c2 = freq2.get(line) || 0;
-        const common = Math.min(c1, c2);
-        for (let k = 0; k < common; k++) {
-          equalRows.push({ type: 'equal', left: line, right: line });
-        }
-        for (let k = common; k < c1; k++) leftover1.push(line);
-        for (let k = common; k < c2; k++) leftover2.push(line);
-      }
-
-      leftover1.sort((a, b) => a.localeCompare(b));
-      leftover2.sort((a, b) => a.localeCompare(b));
-      const modRows = buildJsonDiffRows(leftover1, leftover2);
-
-      rows = [...equalRows, ...modRows];
-    } else {
-      rows = buildJsonDiffRows(lines1, lines2);
-    }
+    const rows = buildJsonDiffRows(lines1, lines2);
 
     let adds = 0, dels = 0, mods = 0;
     rows.forEach(r => { if (r.type === 'add') adds++; else if (r.type === 'del') dels++; else if (r.type === 'mod') mods++; });
@@ -109,7 +74,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
     setHasResult(true);
     setExpandedSections(new Set());
     setError('');
-  }, [text1, text2, sortArrays, sortKey, ignoreOrder, ignoreRules, showToast, setError]);
+  }, [text1, text2, sortArrays, sortKey, ignoreRules, showToast, setError]);
 
   const handleClear = () => {
     setText1('');
@@ -296,10 +261,6 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
             placeholder="e.g. age"
             className={`jd-text-input ${darkMode ? 'jd-text-input-dark' : 'jd-text-input-light'}`}
           />
-        </label>
-        <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
-          <input type="checkbox" checked={ignoreOrder} onChange={e => setIgnoreOrder(e.target.checked)} className="accent-blue-500" />
-          Ignore line order
         </label>
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={collapseEqual} onChange={e => setCollapseEqual(e.target.checked)} className="accent-blue-500" />

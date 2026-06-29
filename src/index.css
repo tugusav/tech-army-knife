@@ -732,11 +732,11 @@ code {
 .jd-diff-dark .jd-row-mod td:nth-child(n+5).jd-gutter, .jd-diff-light .jd-row-mod td:nth-child(n+5).jd-gutter { color: var(--add-text); }
 .jd-diff-dark .jd-row-mod td.jd-sep, .jd-diff-light .jd-row-mod td.jd-sep { background: var(--border); }
 
-/* Inline highlights (yellow tones — used inside modified rows) */
-.hl-del { background: rgba(210,153,34,0.18); color: #e3b341; border-radius: 3px; padding: 0 2px; text-decoration: line-through; }
-.hl-add { background: rgba(210,153,34,0.28); color: #f0c040; border-radius: 3px; padding: 0 2px; font-weight: 500; }
-.theme-light .hl-del { background: #fef3c7; color: #92400e; text-decoration: line-through; }
-.theme-light .hl-add { background: #fde68a; color: #78350f; font-weight: 500; }
+/* Inline highlights */
+.hl-del { background: rgba(248,81,73,0.2); color: var(--del-text); border-radius: 3px; padding: 0 2px; }
+.hl-add { background: rgba(63,185,80,0.2); color: var(--add-text); border-radius: 3px; padding: 0 2px; }
+.theme-light .hl-del { background: #fecaca; color: #991b1b; }
+.theme-light .hl-add { background: #bbf7d0; color: #166534; }
 
 /* Collapse row */
 .jd-collapse-row td {

@@ -20,7 +20,40 @@ function lcsLines(a: string[], b: string[]): Array<{ type: 'equal' | 'del' | 'ad
   return result.reverse();
 }
 
-// ──── Word-level inline diff ────
+// ──── Character-level inline diff (common-prefix / common-suffix) ────
+// More intuitive than LCS: "GIN_MODE=debug" → "GIN_MODE=debugging"
+// highlights only "ging" on the right, not an arbitrary trailing "g".
+function inlineCharDiff(oldStr: string, newStr: string): { leftHtml: string; rightHtml: string } {
+  const minLen = Math.min(oldStr.length, newStr.length);
+
+  // Find common prefix
+  let pre = 0;
+  while (pre < minLen && oldStr[pre] === newStr[pre]) pre++;
+
+  // Find common suffix (from the remaining parts)
+  let suf = 0;
+  const oldRest = oldStr.length - pre;
+  const newRest = newStr.length - pre;
+  while (suf < Math.min(oldRest, newRest) &&
+         oldStr[oldStr.length - 1 - suf] === newStr[newStr.length - 1 - suf]) suf++;
+
+  const oldMid = oldStr.slice(pre, oldStr.length - suf);
+  const newMid = newStr.slice(pre, newStr.length - suf);
+
+  const prefix = escHtml(oldStr.slice(0, pre));
+  const suffix = escHtml(oldStr.slice(oldStr.length - suf));
+
+  const leftHtml = prefix
+    + (oldMid ? `<span class="hl-del">${escHtml(oldMid)}</span>` : '')
+    + suffix;
+  const rightHtml = prefix
+    + (newMid ? `<span class="hl-add">${escHtml(newMid)}</span>` : '')
+    + suffix;
+
+  return { leftHtml, rightHtml };
+}
+
+// ──── Word-level inline diff (falls back to char-level for single-token changes) ────
 export function inlineDiff(oldStr: string, newStr: string): { leftHtml: string; rightHtml: string } {
   const oldWords = oldStr.split(/(\s+)/);
   const newWords = newStr.split(/(\s+)/);
@@ -40,6 +73,15 @@ export function inlineDiff(oldStr: string, newStr: string): { leftHtml: string; 
   while (i > 0) { ops.push({ t: 'del', oi: i - 1 }); i--; }
   while (j > 0) { ops.push({ t: 'add', ni: j - 1 }); j--; }
   ops.reverse();
+
+  // If the word-level diff would highlight everything on both sides
+  // (no eq ops), fall back to character-level diff for precision.
+  const hasEq = ops.some(op => op.t === 'eq');
+  if (!hasEq) {
+    // Token-level diff found zero shared words — fall back to char-level so
+    // that "GIN_MODE=debug" → "GIN_MODE=debugging" highlights only "ging".
+    return inlineCharDiff(oldStr, newStr);
+  }
 
   let leftHtml = '', rightHtml = '';
   for (const op of ops) {

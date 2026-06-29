@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   buildJsonDiffRows,
   escHtml,
+  inlineDiff,
   JsonDiffRow,
 } from '../../utils/diffUtils';
 
@@ -9,6 +10,8 @@ interface TextCompareToolProps {
   darkMode: boolean;
   setError: (error: string) => void;
 }
+
+interface Pair { i: number; j: number; sim: number }
 
 const SAMPLE_LEFT = `Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -61,39 +64,77 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
     let rows: JsonDiffRow[];
 
     if (ignoreOrder) {
-      // Hybrid diff: exact matches first (frequency-based), then sort+LCS
-      // the leftovers to pair similar lines (e.g. GIN_MODE=debug → GIN_MODE=release)
-      // with word-level inline highlighting.
-      const freq1 = new Map<string, number>();
+      // ── Step 1: match identical lines (frequency-based) ──
+      const rem1: string[] = [];
+      const rem2: string[] = [];
       const freq2 = new Map<string, number>();
-      for (const l of lines1) freq1.set(l, (freq1.get(l) || 0) + 1);
       for (const l of lines2) freq2.set(l, (freq2.get(l) || 0) + 1);
 
-      const allLines = [...new Set([...freq1.keys(), ...freq2.keys()])].sort((a, b) => a.localeCompare(b));
-
-      // Equal rows and leftover lines for similarity pairing
-      const equalRows: JsonDiffRow[] = [];
-      const leftover1: string[] = [];
-      const leftover2: string[] = [];
-
-      for (const line of allLines) {
-        const c1 = freq1.get(line) || 0;
-        const c2 = freq2.get(line) || 0;
-        const common = Math.min(c1, c2);
-        for (let k = 0; k < common; k++) {
-          equalRows.push({ type: 'equal', left: line, right: line });
+      rows = [];
+      for (const l of lines1) {
+        const c = freq2.get(l);
+        if (c && c > 0) {
+          freq2.set(l, c - 1);
+          rows.push({ type: 'equal', left: l, right: l });
+        } else {
+          rem1.push(l);
         }
-        for (let k = common; k < c1; k++) leftover1.push(line);
-        for (let k = common; k < c2; k++) leftover2.push(line);
+      }
+      for (const [l, c] of freq2) {
+        for (let k = 0; k < c; k++) rem2.push(l);
       }
 
-      // Sort leftovers so similar lines (same prefix) end up adjacent,
-      // then LCS pairs them as modified with inline word-level diff.
-      leftover1.sort((a, b) => a.localeCompare(b));
-      leftover2.sort((a, b) => a.localeCompare(b));
-      const modRows = buildJsonDiffRows(leftover1, leftover2);
+      // ── Step 2: pair similar lines as modified ──
+      // Character-level LCS similarity ratio
+      const charLcsLen = (a: string, b: string): number => {
+        const m = a.length, n = b.length;
+        const dp = new Array(n + 1).fill(0);
+        for (let i = 1; i <= m; i++) {
+          let prev = 0;
+          for (let j = 1; j <= n; j++) {
+            const temp = dp[j];
+            if (a[i - 1] === b[j - 1]) dp[j] = prev + 1;
+            else dp[j] = Math.max(dp[j], dp[j - 1]);
+            prev = temp;
+          }
+        }
+        return dp[n];
+      };
 
-      rows = [...equalRows, ...modRows];
+      const SIM_THRESHOLD = 0.4;
+
+      // Compute all pair similarities
+      const pairs: Pair[] = [];
+      for (let i = 0; i < rem1.length; i++) {
+        for (let j = 0; j < rem2.length; j++) {
+          const a = rem1[i], b = rem2[j];
+          const lcs = charLcsLen(a, b);
+          const sim = (2 * lcs) / (a.length + b.length);
+          if (sim >= SIM_THRESHOLD) pairs.push({ i, j, sim });
+        }
+      }
+      pairs.sort((a, b) => b.sim - a.sim); // highest similarity first
+
+      const used1 = new Set<number>();
+      const used2 = new Set<number>();
+      for (const { i, j, sim } of pairs) {
+        if (used1.has(i) || used2.has(j)) continue;
+        used1.add(i); used2.add(j);
+        const { leftHtml, rightHtml } = inlineDiff(rem1[i], rem2[j]);
+        rows.push({
+          type: 'mod',
+          left: rem1[i], right: rem2[j],
+          leftHtml, rightHtml,
+        });
+      }
+
+      // ── Step 3: leftover → pure del / add ──
+      for (let i = 0; i < rem1.length; i++) {
+        if (!used1.has(i)) rows.push({ type: 'del', left: rem1[i] });
+      }
+      for (let j = 0; j < rem2.length; j++) {
+        if (!used2.has(j)) rows.push({ type: 'add', right: rem2[j] });
+      }
     } else {
       rows = buildJsonDiffRows(lines1, lines2);
     }
