@@ -37,6 +37,7 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
 
   // Options
   const [collapseEqual, setCollapseEqual] = useState(true);
+  const [ignoreOrder, setIgnoreOrder] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
   // Toast
@@ -54,8 +55,14 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
     const raw2 = text2.trim();
     if (!raw1 || !raw2) { showToast('Please paste text in both fields'); return; }
 
-    const lines1 = raw1.split('\n');
-    const lines2 = raw2.split('\n');
+    let lines1 = raw1.split('\n');
+    let lines2 = raw2.split('\n');
+
+    if (ignoreOrder) {
+      lines1 = lines1.sort((a, b) => a.localeCompare(b));
+      lines2 = lines2.sort((a, b) => a.localeCompare(b));
+    }
+
     const rows = buildJsonDiffRows(lines1, lines2);
 
     let adds = 0, dels = 0, mods = 0;
@@ -66,7 +73,7 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
     setHasResult(true);
     setExpandedSections(new Set());
     setError('');
-  }, [text1, text2, showToast, setError]);
+  }, [text1, text2, ignoreOrder, showToast, setError]);
 
   const handleClear = () => {
     setText1('');
@@ -222,6 +229,10 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
 
       {/* Options Bar */}
       <div className={`flex flex-wrap items-center gap-4 px-4 py-2.5 ${surface} ${border} border-b text-sm`}>
+        <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
+          <input type="checkbox" checked={ignoreOrder} onChange={e => setIgnoreOrder(e.target.checked)} className="accent-blue-500" />
+          Ignore line order
+        </label>
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={collapseEqual} onChange={e => setCollapseEqual(e.target.checked)} className="accent-blue-500" />
           Collapse unchanged sections
