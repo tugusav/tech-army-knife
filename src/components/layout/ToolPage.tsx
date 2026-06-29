@@ -20,6 +20,7 @@ import { CronTool } from '../tools/CronTool';
 import { HashGeneratorTool } from '../tools/HashGeneratorTool';
 import { K6LoadTestTool } from '../tools/K6LoadTestTool';
 import { HtmlViewerTool } from '../tools/HtmlViewerTool';
+import { TextCompareTool } from '../tools/TextCompareTool';
 
 interface ToolPageProps {
   activeView: string;
@@ -60,6 +61,7 @@ export function ToolPage({ activeView, tools, error, setError, copied, copyToCli
         {activeView === 'xml-viewer' && <XmlViewerTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'sql-format' && <SqlFormatterTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'regex' && <RegexTool darkMode={darkMode} setError={setError} />}
+        {activeView === 'text-diff' && <TextCompareTool darkMode={darkMode} setError={setError} />}
         {activeView === 'jwt' && <JwtTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'csv-json' && <CsvJsonTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}
         {activeView === 'json-xml' && <JsonXmlTool darkMode={darkMode} copied={copied} copyToClipboard={copyToClipboard} setError={setError} />}

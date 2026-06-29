@@ -1,22 +1,34 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   buildJsonDiffRows,
-  deepRemoveKeys,
-  deepSortValue,
   escHtml,
   JsonDiffRow,
 } from '../../utils/diffUtils';
 
-interface CompareToolProps {
+interface TextCompareToolProps {
   darkMode: boolean;
   setError: (error: string) => void;
 }
 
-const SAMPLE_LEFT = {"name": "Alice", "age": 30, "hobbies": ["reading", "hiking"], "address": {"city": "NYC", "zip": "10001"}, "added_offers": [{"id": 1, "service_type": "cleaning"}]};
+const SAMPLE_LEFT = `Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco.
+Duis aute irure dolor in reprehenderit in voluptate velit.
+Excepteur sint occaecat cupidatat non proident.
+This line is unique to the left side.
+Another common line here.
+Final shared line of the text.`;
 
-const SAMPLE_RIGHT = {"name": "Alice", "age": 40, "hobbies": ["reading", "biking"], "address": {"city": "SFO", "zip": "10001"}, "added_offers": [{"id": 1, "service_type": "cleaning"}]};
+const SAMPLE_RIGHT = `Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.
+Excepteur sint occaecat cupidatat non proident, sunt in culpa.
+Another common line here.
+This line is unique to the right side.
+Final shared line of the text.`;
 
-export function CompareTool({ darkMode, setError }: CompareToolProps) {
+export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
   const [text1, setText1] = useState('');
   const [text2, setText2] = useState('');
   const [diffRows, setDiffRows] = useState<JsonDiffRow[]>([]);
@@ -24,11 +36,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
   const [hasResult, setHasResult] = useState(false);
 
   // Options
-  const [sortArrays, setSortArrays] = useState(true);
-  const [sortKey, setSortKey] = useState('');
   const [collapseEqual, setCollapseEqual] = useState(true);
-  const [ignoreRules, setIgnoreRules] = useState<string[]>([]);
-  const [ignoreInput, setIgnoreInput] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
   // Toast
@@ -44,26 +52,10 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
   const doCompare = useCallback(() => {
     const raw1 = text1.trim();
     const raw2 = text2.trim();
-    if (!raw1 || !raw2) { showToast('Please paste JSON in both fields'); return; }
+    if (!raw1 || !raw2) { showToast('Please paste text in both fields'); return; }
 
-    let obj1: any, obj2: any;
-    try { obj1 = JSON.parse(raw1); } catch (e: any) { showToast('Payload 1: Invalid JSON — ' + e.message); return; }
-    try { obj2 = JSON.parse(raw2); } catch (e: any) { showToast('Payload 2: Invalid JSON — ' + e.message); return; }
-
-    if (ignoreRules.length > 0) {
-      obj1 = deepRemoveKeys(obj1, ignoreRules, '');
-      obj2 = deepRemoveKeys(obj2, ignoreRules, '');
-    }
-
-    if (sortArrays) {
-      obj1 = deepSortValue(obj1, sortKey || null);
-      obj2 = deepSortValue(obj2, sortKey || null);
-    }
-
-    const json1 = JSON.stringify(obj1, null, 2);
-    const json2 = JSON.stringify(obj2, null, 2);
-    const lines1 = json1.split('\n');
-    const lines2 = json2.split('\n');
+    const lines1 = raw1.split('\n');
+    const lines2 = raw2.split('\n');
     const rows = buildJsonDiffRows(lines1, lines2);
 
     let adds = 0, dels = 0, mods = 0;
@@ -74,7 +66,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
     setHasResult(true);
     setExpandedSections(new Set());
     setError('');
-  }, [text1, text2, sortArrays, sortKey, ignoreRules, showToast, setError]);
+  }, [text1, text2, showToast, setError]);
 
   const handleClear = () => {
     setText1('');
@@ -87,27 +79,9 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
   };
 
   const handleSample = () => {
-    setText1(JSON.stringify(SAMPLE_LEFT, null, 2));
-    setText2(JSON.stringify(SAMPLE_RIGHT, null, 2));
-    showToast('Sample payloads loaded');
-  };
-
-  const handleIgnoreKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const val = ignoreInput.trim();
-      if (val && !ignoreRules.includes(val)) {
-        setIgnoreRules([...ignoreRules, val]);
-      }
-      setIgnoreInput('');
-    }
-    if (e.key === 'Backspace' && ignoreInput === '' && ignoreRules.length > 0) {
-      setIgnoreRules(ignoreRules.slice(0, -1));
-    }
-  };
-
-  const removeIgnoreRule = (idx: number) => {
-    setIgnoreRules(ignoreRules.filter((_, i) => i !== idx));
+    setText1(SAMPLE_LEFT);
+    setText2(SAMPLE_RIGHT);
+    showToast('Sample texts loaded');
   };
 
   // Keyboard shortcut
@@ -228,7 +202,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
       {/* Action Buttons */}
       <div className={`flex items-center justify-between gap-3 p-3 ${surface} ${border} border-b rounded-t-lg`}>
         <span className={`font-mono text-xs font-semibold uppercase tracking-wider ${textDim}`}>
-          JSON Payload Diff
+          Text Diff
         </span>
         <div className="flex gap-2">
           <button onClick={handleSample} className={`jd-btn ${darkMode ? 'jd-btn-dark' : 'jd-btn-light'}`}>
@@ -249,65 +223,9 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
       {/* Options Bar */}
       <div className={`flex flex-wrap items-center gap-4 px-4 py-2.5 ${surface} ${border} border-b text-sm`}>
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
-          <input type="checkbox" checked={sortArrays} onChange={e => setSortArrays(e.target.checked)} className="accent-blue-500" />
-          Sort arrays before comparing
-        </label>
-        <label className={`flex items-center gap-1.5 ${textDim}`}>
-          Sort key:
-          <input
-            type="text"
-            value={sortKey}
-            onChange={e => setSortKey(e.target.value)}
-            placeholder="e.g. age"
-            className={`jd-text-input ${darkMode ? 'jd-text-input-dark' : 'jd-text-input-light'}`}
-          />
-        </label>
-        <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={collapseEqual} onChange={e => setCollapseEqual(e.target.checked)} className="accent-blue-500" />
           Collapse unchanged sections
         </label>
-      </div>
-
-      {/* Ignore Keys Bar */}
-      <div className={`flex items-start gap-2 px-4 py-2.5 ${surface} ${border} border-b text-sm`}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`mt-1 flex-shrink-0 ${textDim}`}>
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-        <div className="flex-1">
-          <div className={`flex items-center gap-1.5 ${textDim} mb-1`}>
-            <span>Ignore keys:</span>
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {ignoreRules.map((rule, idx) => {
-              const dot = rule.lastIndexOf('.');
-              const isScoped = dot !== -1;
-              const scope = isScoped ? rule.substring(0, dot) : null;
-              const key = isScoped ? rule.substring(dot + 1) : rule;
-              return (
-                <span
-                  key={idx}
-                  className={`jd-tag-chip ${isScoped ? 'jd-tag-scoped' : 'jd-tag-global'} ${darkMode ? '' : 'jd-tag-light'}`}
-                >
-                  {isScoped && <span className="jd-tag-scope">{scope}.</span>}
-                  {key}
-                  <span className="jd-tag-remove" onClick={() => removeIgnoreRule(idx)}>&times;</span>
-                </span>
-              );
-            })}
-            <input
-              type="text"
-              value={ignoreInput}
-              onChange={e => setIgnoreInput(e.target.value)}
-              onKeyDown={handleIgnoreKeyDown}
-              placeholder="parent.key or key + Enter"
-              className={`jd-text-input ${darkMode ? 'jd-text-input-dark' : 'jd-text-input-light'}`}
-            />
-          </div>
-          <span className={`text-[0.7rem] ${darkMode ? 'text-[#484f58]' : 'text-gray-400'} mt-1 block`}>
-            scope with dot path: <code className={`font-mono text-[0.68rem] px-1 rounded ${darkMode ? 'bg-[#1e293b] text-[#8b949e]' : 'bg-gray-200 text-gray-600'}`}>address.city</code> &middot; bare key = global: <code className={`font-mono text-[0.68rem] px-1 rounded ${darkMode ? 'bg-[#1e293b] text-[#8b949e]' : 'bg-gray-200 text-gray-600'}`}>age</code>
-          </span>
-        </div>
       </div>
 
       {/* Input Textareas */}
@@ -315,24 +233,24 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
         <div className={`flex flex-col ${border} md:border-r`}>
           <div className={`flex items-center gap-2 px-4 py-2.5 ${headerBg} ${border} border-b font-mono text-xs font-semibold uppercase tracking-wider ${textDim}`}>
             <span className="w-2 h-2 rounded-full bg-red-500"></span>
-            Payload 1 (left / old)
+            Text 1 (left / old)
           </div>
           <textarea
             value={text1}
             onChange={e => setText1(e.target.value)}
-            placeholder="Paste JSON payload 1 here..."
+            placeholder="Paste text 1 here..."
             className={`jd-textarea ${darkMode ? 'jd-textarea-dark' : 'jd-textarea-light'} flex-1`}
           />
         </div>
         <div className="flex flex-col">
           <div className={`flex items-center gap-2 px-4 py-2.5 ${headerBg} ${border} border-b font-mono text-xs font-semibold uppercase tracking-wider ${textDim}`}>
             <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            Payload 2 (right / new)
+            Text 2 (right / new)
           </div>
           <textarea
             value={text2}
             onChange={e => setText2(e.target.value)}
-            placeholder="Paste JSON payload 2 here..."
+            placeholder="Paste text 2 here..."
             className={`jd-textarea ${darkMode ? 'jd-textarea-dark' : 'jd-textarea-light'} flex-1`}
           />
         </div>
@@ -343,7 +261,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
         {hasResult ? (
           <>
             <div className={`flex items-center justify-between px-4 py-2.5 ${headerBg} ${border} border-b font-mono text-xs sticky top-0 z-10 ${textDim}`}>
-              <span>payload1.json &harr; payload2.json</span>
+              <span>text1 &harr; text2</span>
               <div className="flex gap-3 font-semibold text-xs">
                 <span className="text-green-500">+{stats.adds} added</span>
                 <span className="text-red-500">&minus;{stats.dels} removed</span>

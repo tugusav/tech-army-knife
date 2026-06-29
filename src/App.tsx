@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Code2, Terminal, GitCompare, Shuffle, FileJson, FileCode, Database, FileText, History,
-  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge, Monitor
+  Link, Eye, Hash, Clock, Calendar, Settings, Braces, FileType, Globe, Key, FileX, Gauge, Monitor, FileDiff
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { HistoryProvider } from './contexts/HistoryContext';
@@ -56,6 +56,7 @@ function AppContent() {
     { id: 'xml-viewer', name: 'XML Viewer', category: 'viewer', icon: FileX, desc: 'View and analyze XML data.' },
     { id: 'sql-format', name: 'SQL Formatter', category: 'formatting', icon: Database, desc: 'Format SQL queries.' },
     { id: 'regex', name: 'Regex Tester', category: 'text', icon: Code2, desc: 'Test and generate regex patterns.' },
+    { id: 'text-diff', name: 'Text Diff', category: 'text', icon: FileDiff, desc: 'Git-style side-by-side text diff with word-level change highlighting.' },
     { id: 'jwt', name: 'JWT Tool', category: 'encoding', icon: Key, desc: 'Encode and decode JWT tokens.' },
     { id: 'csv-json', name: 'CSV ⟷ JSON', category: 'conversion', icon: FileText, desc: 'Convert between CSV and JSON.' },
     { id: 'uuid-generator', name: 'UUID Generator', category: 'generator', icon: Hash, desc: 'Generate and validate UUIDs.' },
