@@ -55,15 +55,48 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
     const raw2 = text2.trim();
     if (!raw1 || !raw2) { showToast('Please paste text in both fields'); return; }
 
-    let lines1 = raw1.split('\n');
-    let lines2 = raw2.split('\n');
+    const lines1 = raw1.split('\n');
+    const lines2 = raw2.split('\n');
+
+    let rows: JsonDiffRow[];
 
     if (ignoreOrder) {
-      lines1 = lines1.sort((a, b) => a.localeCompare(b));
-      lines2 = lines2.sort((a, b) => a.localeCompare(b));
-    }
+      // Hybrid diff: exact matches first (frequency-based), then sort+LCS
+      // the leftovers to pair similar lines (e.g. GIN_MODE=debug → GIN_MODE=release)
+      // with word-level inline highlighting.
+      const freq1 = new Map<string, number>();
+      const freq2 = new Map<string, number>();
+      for (const l of lines1) freq1.set(l, (freq1.get(l) || 0) + 1);
+      for (const l of lines2) freq2.set(l, (freq2.get(l) || 0) + 1);
 
-    const rows = buildJsonDiffRows(lines1, lines2);
+      const allLines = [...new Set([...freq1.keys(), ...freq2.keys()])].sort((a, b) => a.localeCompare(b));
+
+      // Equal rows and leftover lines for similarity pairing
+      const equalRows: JsonDiffRow[] = [];
+      const leftover1: string[] = [];
+      const leftover2: string[] = [];
+
+      for (const line of allLines) {
+        const c1 = freq1.get(line) || 0;
+        const c2 = freq2.get(line) || 0;
+        const common = Math.min(c1, c2);
+        for (let k = 0; k < common; k++) {
+          equalRows.push({ type: 'equal', left: line, right: line });
+        }
+        for (let k = common; k < c1; k++) leftover1.push(line);
+        for (let k = common; k < c2; k++) leftover2.push(line);
+      }
+
+      // Sort leftovers so similar lines (same prefix) end up adjacent,
+      // then LCS pairs them as modified with inline word-level diff.
+      leftover1.sort((a, b) => a.localeCompare(b));
+      leftover2.sort((a, b) => a.localeCompare(b));
+      const modRows = buildJsonDiffRows(leftover1, leftover2);
+
+      rows = [...equalRows, ...modRows];
+    } else {
+      rows = buildJsonDiffRows(lines1, lines2);
+    }
 
     let adds = 0, dels = 0, mods = 0;
     rows.forEach(r => { if (r.type === 'add') adds++; else if (r.type === 'del') dels++; else if (r.type === 'mod') mods++; });
