@@ -1,39 +1,41 @@
-const CACHE_NAME = 'techarmyknife-v1';
-const urlsToCache = [
-  '/',
-  '/src/main.jsx',
-  '/src/index.css',
-  '/favicon.png'
-];
+const CACHE_NAME = 'techarmyknife-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      }
-    )
-  );
+  // Skip waiting so the new SW activates immediately
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
       );
     })
+  );
+  // Take control of all clients immediately
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses for next time (stale-while-revalidate)
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Offline fallback: serve from cache
+        return caches.match(event.request);
+      })
   );
 });
