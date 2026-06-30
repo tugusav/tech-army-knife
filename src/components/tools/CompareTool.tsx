@@ -27,6 +27,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
   const [sortArrays, setSortArrays] = useState(true);
   const [sortKey, setSortKey] = useState('');
   const [collapseEqual, setCollapseEqual] = useState(true);
+  const [pairModified, setPairModified] = useState(true);
   const [ignoreRules, setIgnoreRules] = useState<string[]>([]);
   const [ignoreInput, setIgnoreInput] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
@@ -64,7 +65,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
     const json2 = JSON.stringify(obj2, null, 2);
     const lines1 = json1.split('\n');
     const lines2 = json2.split('\n');
-    const rows = buildJsonDiffRows(lines1, lines2);
+    const rows = buildJsonDiffRows(lines1, lines2, pairModified);
 
     let adds = 0, dels = 0, mods = 0;
     rows.forEach(r => { if (r.type === 'add') adds++; else if (r.type === 'del') dels++; else if (r.type === 'mod') mods++; });
@@ -74,7 +75,7 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
     setHasResult(true);
     setExpandedSections(new Set());
     setError('');
-  }, [text1, text2, sortArrays, sortKey, ignoreRules, showToast, setError]);
+  }, [text1, text2, sortArrays, sortKey, collapseEqual, pairModified, ignoreRules, showToast, setError]);
 
   const handleClear = () => {
     setText1('');
@@ -261,6 +262,10 @@ export function CompareTool({ darkMode, setError }: CompareToolProps) {
             placeholder="e.g. age"
             className={`jd-text-input ${darkMode ? 'jd-text-input-dark' : 'jd-text-input-light'}`}
           />
+        </label>
+        <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
+          <input type="checkbox" checked={pairModified} onChange={e => setPairModified(e.target.checked)} className="accent-blue-500" />
+          Pair modified lines
         </label>
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={collapseEqual} onChange={e => setCollapseEqual(e.target.checked)} className="accent-blue-500" />

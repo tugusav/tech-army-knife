@@ -113,7 +113,7 @@ export interface JsonDiffRow {
   rightHtml?: string;
 }
 
-export function buildJsonDiffRows(linesA: string[], linesB: string[]): JsonDiffRow[] {
+export function buildJsonDiffRows(linesA: string[], linesB: string[], pairModified = true): JsonDiffRow[] {
   const ops = lcsLines(linesA, linesB);
   const rows: JsonDiffRow[] = [];
 
@@ -135,24 +135,36 @@ export function buildJsonDiffRows(linesA: string[], linesB: string[]): JsonDiffR
         else adds.push(ops[i].right!);
         i++;
       }
-      const pairs = Math.min(dels.length, adds.length);
-      for (let p = 0; p < pairs; p++) {
-        const { leftHtml, rightHtml } = inlineDiff(linesA[dels[p]], linesB[adds[p]]);
-        rows.push({
-          type: 'mod',
-          left: linesA[dels[p]],
-          right: linesB[adds[p]],
-          ln1: dels[p] + 1,
-          ln2: adds[p] + 1,
-          leftHtml,
-          rightHtml,
-        });
-      }
-      for (let p = pairs; p < dels.length; p++) {
-        rows.push({ type: 'del', left: linesA[dels[p]], ln1: dels[p] + 1 });
-      }
-      for (let p = pairs; p < adds.length; p++) {
-        rows.push({ type: 'add', right: linesB[adds[p]], ln2: adds[p] + 1 });
+
+      if (pairModified) {
+        // Pair consecutive dels & adds as modified (with inline highlighting)
+        const pairs = Math.min(dels.length, adds.length);
+        for (let p = 0; p < pairs; p++) {
+          const { leftHtml, rightHtml } = inlineDiff(linesA[dels[p]], linesB[adds[p]]);
+          rows.push({
+            type: 'mod',
+            left: linesA[dels[p]],
+            right: linesB[adds[p]],
+            ln1: dels[p] + 1,
+            ln2: adds[p] + 1,
+            leftHtml,
+            rightHtml,
+          });
+        }
+        for (let p = pairs; p < dels.length; p++) {
+          rows.push({ type: 'del', left: linesA[dels[p]], ln1: dels[p] + 1 });
+        }
+        for (let p = pairs; p < adds.length; p++) {
+          rows.push({ type: 'add', right: linesB[adds[p]], ln2: adds[p] + 1 });
+        }
+      } else {
+        // Show all as pure del / add — no modified pairing
+        for (const idx of dels) {
+          rows.push({ type: 'del', left: linesA[idx], ln1: idx + 1 });
+        }
+        for (const idx of adds) {
+          rows.push({ type: 'add', right: linesB[idx], ln2: idx + 1 });
+        }
       }
     }
   }

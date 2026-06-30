@@ -41,6 +41,7 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
   // Options
   const [collapseEqual, setCollapseEqual] = useState(true);
   const [ignoreOrder, setIgnoreOrder] = useState(false);
+  const [pairModified, setPairModified] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
   // Toast
@@ -136,7 +137,7 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
         if (!used2.has(j)) rows.push({ type: 'add', right: rem2[j] });
       }
     } else {
-      rows = buildJsonDiffRows(lines1, lines2);
+      rows = buildJsonDiffRows(lines1, lines2, pairModified);
     }
 
     let adds = 0, dels = 0, mods = 0;
@@ -147,7 +148,7 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
     setHasResult(true);
     setExpandedSections(new Set());
     setError('');
-  }, [text1, text2, ignoreOrder, showToast, setError]);
+  }, [text1, text2, ignoreOrder, pairModified, showToast, setError]);
 
   const handleClear = () => {
     setText1('');
@@ -306,6 +307,10 @@ export function TextCompareTool({ darkMode, setError }: TextCompareToolProps) {
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={ignoreOrder} onChange={e => setIgnoreOrder(e.target.checked)} className="accent-blue-500" />
           Ignore line order
+        </label>
+        <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
+          <input type="checkbox" checked={pairModified} onChange={e => setPairModified(e.target.checked)} className="accent-blue-500" />
+          Pair modified lines
         </label>
         <label className={`flex items-center gap-1.5 cursor-pointer ${textDim}`}>
           <input type="checkbox" checked={collapseEqual} onChange={e => setCollapseEqual(e.target.checked)} className="accent-blue-500" />
